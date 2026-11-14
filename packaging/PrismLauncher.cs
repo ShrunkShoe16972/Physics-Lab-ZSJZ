@@ -15,6 +15,7 @@ namespace PrismLab
 {
     internal static class Program
     {
+        private const string AppMutexName = @"Local\PrismLab_Portable_v3";
         private static Mutex appMutex;
         private static NotifyIcon tray;
         private static AssetServer server;
@@ -28,11 +29,11 @@ namespace PrismLab
                 string.Equals(Environment.GetEnvironmentVariable("PRISM_NO_BROWSER"), "1", StringComparison.Ordinal);
 
             dataDir = ResolveDataDir();
-            portFile = Path.Combine(dataDir, "port.txt");
+            portFile = Path.Combine(dataDir, "port-v3.txt");
             Log("Starting Prism portable");
 
             bool createdNew;
-            appMutex = new Mutex(true, @"Local\PrismLab_Portable", out createdNew);
+            appMutex = new Mutex(true, AppMutexName, out createdNew);
             if (!createdNew)
             {
                 int existingPort = ReadPort();
@@ -177,6 +178,15 @@ namespace PrismLab
             menu.Items.Add(exit);
             tray.ContextMenuStrip = menu;
             tray.DoubleClick += delegate { OpenBrowser(server.Url); };
+            try
+            {
+                tray.ShowBalloonTip(3500, "Prism 已启动",
+                    "如果浏览器没有自动打开，请右键托盘图标选择“打开实验室”。",
+                    ToolTipIcon.Info);
+            }
+            catch
+            {
+            }
         }
 
         private static void Cleanup()
@@ -242,18 +252,42 @@ namespace PrismLab
                 try
                 {
                     Log("Trying browser " + candidates[i]);
+                    string browserName = Path.GetFileNameWithoutExtension(candidates[i]);
+                    string profileDir = Path.Combine(dataDir, "browser", browserName);
+                    Directory.CreateDirectory(profileDir);
                     ProcessStartInfo info = new ProcessStartInfo();
                     info.FileName = candidates[i];
-                    info.Arguments = "--app=\"" + url + "\" --window-size=1500,980 --no-first-run " +
-                        "--disable-features=Translate";
+                    info.Arguments = "--app=\"" + url + "\" --window-size=1500,980 " +
+                        "--no-first-run --no-default-browser-check --disable-session-crashed-bubble " +
+                        "--disable-features=Translate,MediaRouter " +
+                        "--user-data-dir=\"" + profileDir + "\"";
                     info.UseShellExecute = true;
                     info.WorkingDirectory = Path.GetDirectoryName(candidates[i]);
                     Process started = Process.Start(info);
-                    Log("Browser process " + (started == null ? "unknown" : started.Id.ToString()));
-                    if (started != null && started.WaitForExit(1600) && started.ExitCode != 0)
+                    Log("Browser launch requested" + (started == null ? " (no process handle)" : " pid " + started.Id));
+                    // Chrome/Edge hand off --app windows to an existing browser
+                    // process and can exit with a non-zero code immediately.
+                    // Do not block the launcher. If the app process really
+                    // fails, fall back to the default browser on a worker.
+                    if (started != null)
                     {
-                        Log("Browser exited with code " + started.ExitCode + ", trying next option");
-                        continue;
+                        Process watched = started;
+                        Thread watcher = new Thread(delegate()
+                        {
+                            try
+                            {
+                                if (watched.WaitForExit(2600) && watched.ExitCode != 0)
+                                {
+                                    Log("Browser exited with code " + watched.ExitCode + ", opening normal window");
+                                    OpenNormalBrowser(url);
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        });
+                        watcher.IsBackground = true;
+                        watcher.Start();
                     }
                     return;
                 }
@@ -263,6 +297,70 @@ namespace PrismLab
                 }
             }
 
+            OpenNormalBrowser(url);
+        }
+
+        private static void OpenNormalBrowser(string url)
+        {
+            string[] candidates = new string[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Google\Chrome\Application\chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Google\Chrome\Application\chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Google\Chrome\Application\chrome.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"Microsoft\Edge\Application\msedge.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Microsoft\Edge\Application\msedge.exe")
+            };
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                if (!File.Exists(candidates[i])) continue;
+                try
+                {
+                    string browserName = Path.GetFileNameWithoutExtension(candidates[i]);
+                    string profileDir = Path.Combine(dataDir, "browser", browserName + "-window");
+                    Directory.CreateDirectory(profileDir);
+                    ProcessStartInfo info = new ProcessStartInfo();
+                    info.FileName = candidates[i];
+                    info.Arguments = "--new-window \"" + url + "\" --no-first-run " +
+                        "--no-default-browser-check --disable-session-crashed-bubble " +
+                        "--disable-features=Translate,MediaRouter " +
+                        "--user-data-dir=\"" + profileDir + "\"";
+                    info.UseShellExecute = true;
+                    info.WorkingDirectory = Path.GetDirectoryName(candidates[i]);
+                    Process started = Process.Start(info);
+                    Log("Normal browser window requested: " + candidates[i] +
+                        (started == null ? " (no process handle)" : " pid " + started.Id));
+                    if (started != null)
+                    {
+                        Process watched = started;
+                        Thread watcher = new Thread(delegate()
+                        {
+                            try
+                            {
+                                if (watched.WaitForExit(2600) && watched.ExitCode != 0)
+                                {
+                                    Log("Normal browser exited with code " + watched.ExitCode);
+                                    OpenDefaultBrowser(url);
+                                }
+                            }
+                            catch
+                            {
+                            }
+                        });
+                        watcher.IsBackground = true;
+                        watcher.Start();
+                    }
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Log("Normal browser failed: " + ex.Message);
+                }
+            }
+            OpenDefaultBrowser(url);
+        }
+
+        private static void OpenDefaultBrowser(string url)
+        {
             try
             {
                 Log("Falling back to default browser");
