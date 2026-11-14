@@ -38,6 +38,25 @@ Prism 是一个面向高中物理的交互式实验平台。它把 **21 个高�
 
 直接双击 `index.html` 也能运行。由于浏览器对本地文件的存储策略不同，建议使用前两种方式以获得更稳定的学习进度记录。
 
+### 方式四：便携 EXE（分享给其他人）
+
+**`dist/PrismLab-0.1.0.exe`** 是单文件便携版，适用于 Windows 10 / 11：
+
+1. 把 exe 复制到任意目录，双击运行；
+2. 程序内置全部 HTML / CSS / JavaScript，不需要联网、不需要安装；
+3. 自动尝试用 Chrome / Edge 的应用窗口打开，若未安装则交给默认浏览器；
+4. 关闭浏览器后服务仍在系统托盘，右键 Prism 图标可重新打开或退出。
+
+由于是未签名程序，Windows SmartScreen 可能提示“未知发布者”，选择“更多信息 → 仍要运行”即可。
+
+重新构建便携版：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
+```
+
+构建脚本会压缩 Web 资源、嵌入图标和版本信息，输出到 `dist/`。
+
 ---
 
 ## 字体大小与页面滚动

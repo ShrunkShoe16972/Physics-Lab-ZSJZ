@@ -996,6 +996,18 @@ body.focus-mode .viewport-note { display: none; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
+/* ---------- Page transitions ---------- */
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes stageIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.view-inner, .lab-page { animation: viewIn .36s var(--ease) both; }
+.stage-card { animation: stageIn .42s var(--ease) both; }
+
 /* ============================================================
    Readability · adjustable interface / canvas typography
    The --fs variable is set by app.js and persisted locally.

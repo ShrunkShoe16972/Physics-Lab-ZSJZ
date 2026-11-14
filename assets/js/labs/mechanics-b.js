@@ -466,10 +466,14 @@
       drawCart(kin.x2, state.m2, kin.v2, '#30d158', 'm₂');
 
       // collision flash
-      if (kin.tc < 5 && Math.abs(view.t - kin.tc) < 0.16) {
+      if (kin.tc < 5 && Math.abs(view.t - kin.tc) < 0.24) {
+        const age = Math.abs(view.t - kin.tc) / 0.24;
         const mx = (kin.x1 + kin.x2) / 2;
-        C.glowCircle(ctx, mx, trackY - 26, 56, '#ffffff', 0.42);
+        ctx.save();
+        ctx.globalAlpha = 1 - U.smoothstep(age);
+        C.glowCircle(ctx, mx, trackY - 26, 54 + 34 * age, '#ffffff', 0.42);
         C.label(ctx, '碰撞', mx, trackY - 70, { size: 9, align: 'center', color: '#fff' });
+        ctx.restore();
       }
       // momentum before / after panel
       const p1b = state.m1 * state.v1, p2b = state.m2 * state.v2;

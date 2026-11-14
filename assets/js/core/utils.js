@@ -10,6 +10,7 @@
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
+  const smoothstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
   const uid = (p) => (p || 'id') + '-' + Math.random().toString(36).slice(2, 8);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const deg = (d) => d * Math.PI / 180;
@@ -127,6 +128,10 @@
     }
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if ('imageSmoothingEnabled' in ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
     ctx.clearRect(0, 0, w, h);
     return { ctx, w, h, dpr };
   }
@@ -325,7 +330,7 @@
   function iconTrash() { return '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg>'; }
   function iconUpload() { return '<svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 20h14"/></svg>'; }
 
-  OL.utils = { $, $$, clamp, lerp, uid, esc, deg, rad, fmt, sci, sup, throttle, download, toCSV, load, save, reset, complete, isDone, hexA };
+  OL.utils = { $, $$, clamp, lerp, smoothstep, uid, esc, deg, rad, fmt, sci, sup, throttle, download, toCSV, load, save, reset, complete, isDone, hexA };
   OL.ui = OL.ui || { fontScale: 1, canvasLabelScale: 1.12, chartFontScale: 1 };
   OL.store = { load, save, reset, complete, isDone, key: storeKey };
   OL.canvas = { prepare, roundRect, fillRound, label, line, arrow, dot, ball, glowCircle, hexA, grid, floorLine, spring, bars, axis, dashedPath };

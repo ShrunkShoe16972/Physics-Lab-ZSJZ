@@ -376,6 +376,9 @@
       const dist = Math.min(520, 0.5 * a * view.t * view.t * 42);
       const trackY = 350, x0 = 92;
       const cartX = x0 + dist;
+      const loopFade = view.playing
+        ? Math.min(1, U.clamp(view.t / 0.18, 0, 1), U.clamp((2.6 - view.t) / 0.18, 0, 1))
+        : 1;
 
       K.panel(ctx, 40, 44, 826, 180, { fill: 'rgba(9,15,26,.46)', stroke: 'rgba(255,255,255,.06)' });
       C.label(ctx, '控制变量法', 58, 67, { size: 9.5, color: 'rgba(230,240,255,.4)' });
@@ -396,6 +399,8 @@
       C.floorLine(ctx, 50, 860, trackY, 'rgba(160,190,240,.3)');
       C.line(ctx, 58, trackY, 820, trackY, 'rgba(160,190,240,.22)', 5);
       C.line(ctx, 58, trackY - 2, 820, trackY - 2, 'rgba(255,255,255,.12)', 1);
+      ctx.save();
+      ctx.globalAlpha = loopFade;
       K.car(ctx, cartX + 8, trackY - 8, 0.76);
       // rope
       C.line(ctx, cartX + 44, trackY - 30, 748, trackY - 28, 'rgba(230,238,250,.55)', 1.2);
@@ -416,6 +421,7 @@
       // stopwatch
       C.label(ctx, 't = ' + U.fmt(view.t, 2) + ' s', 86, 226, { size: 9, color: 'rgba(230,240,255,.45)', mono: true });
       C.label(ctx, 'v = ' + U.fmt(a * view.t, 2) + ' m/s', 86, 243, { size: 9, color: '#64d2ff', mono: true });
+      ctx.restore();
       f.restore();
     },
     readouts(state, view) {

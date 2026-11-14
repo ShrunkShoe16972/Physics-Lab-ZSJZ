@@ -182,9 +182,12 @@
       for (let s = 0; s < 2; s++) {
         const cy = sy - 27 + s * 54;
         for (let k = 0; k < 5; k++) {
-          const rr = 34 + ((ph + k / 5) % 1) * 310;
+          const f = (ph + k / 5) % 1;
+          const rr = 34 + f * 310;
           ctx.save();
-          ctx.beginPath(); ctx.arc(slitX + 3, cy, rr, -0.62, 0.62); ctx.strokeStyle = C.hexA(col, 0.18 * (1 - rr / 350)); ctx.lineWidth = 1; ctx.stroke();
+          ctx.beginPath(); ctx.arc(slitX + 3, cy, rr, -0.62, 0.62);
+          ctx.strokeStyle = C.hexA(col, 0.2 * Math.sin(Math.PI * f));
+          ctx.lineWidth = 1; ctx.stroke();
           ctx.restore();
         }
       }
@@ -292,7 +295,11 @@
       const t = view.t % cycle;
       const dropPhase = U.clamp((t - 0.3) / 1.0, 0, 1);
       const spreadPhase = U.clamp((t - 1.3) / 2.0, 0, 1);
+      const spreadEase = U.smoothstep(spreadPhase);
       const settled = t > 3.3;
+      const sceneFade = view.playing
+        ? Math.min(1, U.clamp(t / 0.55, 0, 1), U.clamp((cycle - t) / 1.25, 0, 1))
+        : 1;
 
       // table
       C.fillRound(ctx, 40, 394, 570, 12, 6, 'rgba(160,180,210,.13)');
@@ -327,8 +334,10 @@
 
       // final film width maps area
       const targetW = 150 + (state.A - 100) / 300 * 330;
-      const fw = 12 + (targetW - 12) * (settled ? 1 : spreadPhase);
-      const filmH = 10 + 12 * spreadPhase;
+      const fw = 12 + (targetW - 12) * (settled ? 1 : spreadEase);
+      const filmH = 10 + 12 * spreadEase;
+      ctx.save();
+      ctx.globalAlpha = sceneFade;
       if (spreadPhase > 0) {
         const fx = 320, fy = dishY + 6;
         ctx.save();
@@ -350,6 +359,7 @@
         }
       }
       C.label(ctx, '油膜', 320, dishY + 37, { size: 8, align: 'center', color: settled ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)' });
+      ctx.restore();
 
       // dropper
       const dx = 320, dy = 84;
@@ -357,12 +367,22 @@
       C.roundRect(ctx, dx - 16, dy - 30, 32, 42, 6); ctx.strokeStyle = 'rgba(210,225,245,.4)'; ctx.stroke();
       C.fillRound(ctx, dx - 2, dy + 8, 4, 12, 2, 'rgba(210,225,245,.5)');
       if (dropPhase > 0 && dropPhase < 1) {
-        const yy = 106 + dropPhase * (dishY - 114);
+        const yy = 106 + (dropPhase * dropPhase) * (dishY - 114);
+        ctx.save();
+        ctx.globalAlpha = sceneFade;
         C.glowCircle(ctx, dx, yy, 15, '#ffcf70', 0.5);
-        ctx.save(); ctx.beginPath(); ctx.ellipse(dx, yy, 6, 9, 0, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.ellipse(dx, yy, 6, 9, 0, 0, Math.PI * 2);
         const dg = ctx.createRadialGradient(dx - 2, yy - 3, 1, dx, yy, 9);
         dg.addColorStop(0, 'rgba(255,255,235,.95)'); dg.addColorStop(0.5, 'rgba(255,220,140,.8)'); dg.addColorStop(1, 'rgba(220,160,60,.55)');
         ctx.fillStyle = dg; ctx.fill(); ctx.restore();
+      }
+      if (t > 1.28 && t < 1.95) {
+        const rp = (t - 1.28) / 0.67;
+        ctx.save();
+        ctx.globalAlpha = sceneFade * (1 - rp);
+        ctx.strokeStyle = 'rgba(170,225,255,.55)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.ellipse(dx, dishY + 5, 8 + 42 * rp, 3 + 9 * rp, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
       }
       C.label(ctx, '油酸酒精溶液', dx, 44, { size: 8, align: 'center', color: 'rgba(230,240,255,.38)' });
       C.label(ctx, U.fmt(state.V, 3) + ' mL / 滴', dx, 60, { size: 7.5, align: 'center', color: 'rgba(230,240,255,.28)', mono: true });
@@ -370,6 +390,7 @@
       // magnifier
       const mx = 746, my = 176, mr = 104;
       ctx.save();
+      ctx.globalAlpha = sceneFade;
       ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip();
       ctx.fillStyle = 'rgba(8,16,30,.92)'; ctx.fillRect(mx - mr, my - mr, mr * 2, mr * 2);
       const lens = ctx.createRadialGradient(mx - 30, my - 34, 8, mx, my, mr);
@@ -394,10 +415,14 @@
       C.label(ctx, '水', mx, 300, { size: 7, align: 'center', color: 'rgba(120,190,255,.5)' });
       ctx.restore();
       ctx.save();
+      ctx.globalAlpha = sceneFade;
       ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(150,205,255,.35)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = sceneFade;
       C.label(ctx, '微观放大 · 单分子层', mx, my + mr + 18, { size: 8, align: 'center', color: 'rgba(150,205,255,.42)' });
+      ctx.restore();
 
       // result card
       K.panel(ctx, 622, 300, 234, 94, { fill: 'rgba(9,15,26,.68)' });
@@ -407,6 +432,8 @@
       C.label(ctx, U.sci(q.d_nm * 1e-9, 1) + ' m', 772, 372, { size: 9, color: 'rgba(230,240,255,.38)', mono: true });
 
       // stage progress
+      ctx.save();
+      ctx.globalAlpha = sceneFade;
       const stages = ['滴入', '铺展', '单分子层'];
       let active = 0;
       if (t > 1.2) active = 1;
@@ -419,6 +446,7 @@
       }
       C.label(ctx, 'S = ' + U.fmt(state.A, 0) + ' cm²', 76, 382, { size: 8, color: 'rgba(230,240,255,.35)', mono: true });
       C.label(ctx, 'c = ' + U.fmt(state.c, 2) + '%', 204, 382, { size: 8, color: 'rgba(230,240,255,.35)', mono: true });
+      ctx.restore();
       f.restore();
     },
     readouts(state) {

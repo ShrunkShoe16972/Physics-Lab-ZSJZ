@@ -51,8 +51,10 @@
       C.label(ctx, 'I', cx + dx * 0.27 + 8, cy + dy * 0.27, { size: 9, color: '#ffd166', mono: true });
       // current flow dots
       for (let i = 0; i < 5; i++) {
-        const p = ((view.t * 0.5 + i / 5) % 1) - 0.5;
-        C.dot(ctx, cx + dx * p, cy + dy * p, 2.2, '#ffe6a8', 4);
+        const life = (view.t * 0.5 + i / 5) % 1;
+        const p = life - 0.5;
+        const alpha = 0.18 + 0.82 * Math.sin(Math.PI * life);
+        C.dot(ctx, cx + dx * p, cy + dy * p, 2.2, 'rgba(255,230,168,' + alpha.toFixed(3) + ')', 4 * alpha);
       }
       // force arrow (out of plane represented upward)
       C.arrow(ctx, cx, cy - 12, cx, cy - 12 - Math.min(112, 28 + F * 10), { color: '#bf8bff', width: 2.6, head: 10, glow: 9 });
@@ -133,11 +135,19 @@
     live: true,
     playable: true,
     hint: '插入 / 拔出磁铁 · 观察磁通量变化与感应电流',
-    step(state, dt, view) { view.t += dt; },
+    onControl(key, state, view) {
+      if (key === 'motion') { view.t = 0; view.playing = false; }
+    },
+    step(state, dt, view) {
+      if (state.motion === 'still') { view.playing = false; return; }
+      const duration = 4.6 / Math.max(0.2, state.speed);
+      view.t = Math.min(duration, view.t + dt);
+      if (view.t >= duration - 0.001) view.playing = false;
+    },
     _kin(state, view) {
       if (state.motion === 'still') return { x: 482, vx: 0, phase: 0 };
       const cyc = 4.6 / Math.max(0.2, state.speed);
-      const p = (view.t % cyc) / cyc;
+      const p = U.clamp(view.t / cyc, 0, 1);
       const q = U.clamp(p * 1.75, 0, 1);
       const smooth = q * q * (3 - 2 * q);
       if (state.motion === 'withdraw') {
@@ -425,8 +435,10 @@
         const ph = (view.t * 0.35 + i * 0.13) % 1;
         C.line(ctx, left + 6, y, right - 4, y, 'rgba(100,180,255,' + (0.1 + state.er * 0.025) + ')', 1);
         for (let j = 0; j < 3; j++) {
-          const px = left + 6 + ((ph + j / 3) % 1) * (gap - 10);
-          C.dot(ctx, px, y, 1.2, 'rgba(150,210,255,.5)');
+          const life = (ph + j / 3) % 1;
+          const px = left + 6 + life * (gap - 10);
+          const alpha = 0.62 * Math.sin(Math.PI * life);
+          C.dot(ctx, px, y, 1.2, 'rgba(150,210,255,' + alpha.toFixed(3) + ')');
         }
       }
       // charges

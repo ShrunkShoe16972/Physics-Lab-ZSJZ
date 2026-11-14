@@ -560,6 +560,7 @@
         range.style.setProperty('--fill', ((val - c.min) / (c.max - c.min) * 100) + '%');
         if (cur.lab.onControl) cur.lab.onControl.call(cur.lab, key, cur.state, cur.view);
         cur.view.dirty = true;
+        updatePlayButton();
         updateReadouts();
         schedulePlot();
         scheduleConclusion();
@@ -571,7 +572,7 @@
         cur.state[key] = sel.value;
         if (cur.lab.onControl) cur.lab.onControl.call(cur.lab, key, cur.state, cur.view);
         cur.view.dirty = true;
-        updateReadouts(); schedulePlot(); scheduleConclusion();
+        updatePlayButton(); updateReadouts(); schedulePlot(); scheduleConclusion();
       });
       controls.addEventListener('click', (e) => {
         const b = e.target.closest('[data-seg-key]');
@@ -581,7 +582,7 @@
         $$('[data-control-seg="' + key + '"] button', controls).forEach((x) => x.classList.toggle('active', x === b));
         if (cur.lab.onControl) cur.lab.onControl.call(cur.lab, key, cur.state, cur.view);
         cur.view.dirty = true;
-        updateReadouts(); schedulePlot(); scheduleConclusion();
+        updatePlayButton(); updateReadouts(); schedulePlot(); scheduleConclusion();
       });
     }
     const wrap = $('#chartWrap');
@@ -620,7 +621,7 @@
     let lastReadout = 0, lastChart = 0, lastTable = 0;
     function loop(now) {
       if (!cur.alive || state.currentLab !== cur) return;
-      const dt = Math.min(0.05, Math.max(0, (now - cur.view.lastTs) / 1000));
+      const dt = Math.min(0.04, Math.max(0, (now - cur.view.lastTs) / 1000));
       cur.view.lastTs = now;
       if (cur.view.playing) {
         if (cur.lab.step) {
@@ -639,7 +640,7 @@
       if (cur.view.dirty) {
         drawStage();
         if (now - lastReadout > 100) { lastReadout = now; updateReadouts(); }
-        if (now - lastChart > 170) { lastChart = now; updateChart(); }
+        if (now - lastChart > 200) { lastChart = now; updateChart(); }
         if (cur.view.tab === 'table' && now - lastTable > 700) { lastTable = now; renderTable(); }
         cur.view.dirty = false;
       }
