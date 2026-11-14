@@ -224,6 +224,28 @@
     toast('已保存你的阅读偏好');
   }
 
+  function openErrorAnalysis() {
+    const cur = state.currentLab;
+    if (!cur || !cur.exp.errorAnalysis) return;
+    const ea = cur.exp.errorAnalysis;
+    const cases = (ea.cases || []).map((c) =>
+      '<div class="error-case ' + U.esc(c.kind || 'note') + '">' +
+      '<b>' + U.esc(c.name) + '</b>' +
+      '<code>' + U.esc(c.formula) + '</code>' +
+      '<em>' + U.esc(c.verdict) + '</em></div>'
+    ).join('');
+    openModal('误差分析', [
+      '<p class="error-analysis-lead">' + U.esc(ea.lead) + '</p>',
+      '<div class="error-formula">' + U.esc(ea.formula) + '</div>',
+      '<div class="error-case-grid">' + cases + '</div>',
+      '<p class="error-method">' + U.esc(ea.method) + '</p>',
+      '<div class="error-conclusion"><b>误差方向判断：</b>' + U.esc(ea.conclusion) + '</div>'
+    ].join(''), {
+      sub: cur.exp.title,
+      footer: '<button class="btn" data-action="close-modal">关闭</button>'
+    });
+  }
+
   function openPalette() {
     const root = $('#paletteRoot');
     setFontPanel(false);
@@ -553,6 +575,27 @@
 
   function defaultValue(c) { return c.type === 'select' || c.type === 'segmented' ? c.value : Number(c.value); }
 
+  function activeSteps(exp, view) {
+    if (exp && exp.stepVersions && view && view.stepVariant === 'complex' && exp.stepVersions.complex) {
+      return exp.stepVersions.complex;
+    }
+    if (exp && exp.stepVersions && exp.stepVersions.simple) return exp.stepVersions.simple;
+    return (exp && exp.steps) || [];
+  }
+
+  function stepStorageKey(id, view) {
+    return view && view.stepVariant === 'complex' ? id + ':complex' : id;
+  }
+
+  function stepListHTML(exp, view) {
+    const steps = activeSteps(exp, view);
+    const checked = (U.load().steps[stepStorageKey(exp.id, view)] || []);
+    return steps.map((s, i) => {
+      const on = !!checked[i];
+      return '<li class="step' + (on ? ' done' : '') + '" data-step="' + i + '"><span class="step-check">' + (on ? ui('check') : (i + 1)) + '</span><p>' + U.esc(s) + '</p></li>';
+    }).join('');
+  }
+
   function makeState(exp) {
     const s = {};
     exp.controls.forEach((c) => { s[c.key] = defaultValue(c); });
@@ -595,20 +638,25 @@
     const view = {
       t: 0, playing: false, records: [], dirty: true, lastTs: performance.now(),
       autoClock: 0, lastSample: -1, active: true, tab: 'chart', chart: null,
-      done: U.isDone(id)
+      done: U.isDone(id),
+      stepVariant: (exp.stepVersions && (U.load().stepVariants || {})[id] === 'complex') ? 'complex' : 'simple'
     };
     const cat = catOf(exp);
-    const stepHTML = exp.steps.map((s, i) => {
-      const checked = (U.load().steps[id] || [])[i];
-      return '<li class="step' + (checked ? ' done' : '') + '" data-step="' + i + '"><span class="step-check">' + (checked ? ui('check') : (i + 1)) + '</span><p>' + U.esc(s) + '</p></li>';
-    }).join('');
+    const stepHTML = stepListHTML(exp, view);
 
     viewEl.innerHTML = '<div class="lab-page" style="--accent:' + (exp.accent || cat.color) + '">' +
       '<div class="lab-head"><div class="lab-head-left">' +
       '<button class="back-link" data-route="library">' + ui('back') + ' 返回实验库</button>' +
       '<div class="lab-title-row"><h1>' + U.esc(exp.title) + '</h1><span class="lab-id">#' + pad(exp.n || 0) + '</span><span class="pill accent">' + U.esc(cat.name) + '</span><span class="pill">' + U.esc(exp.difficulty || '基础') + '</span><span class="pill' + (view.done ? ' green' : '') + '" id="labDonePill">' + (view.done ? '已完成' : '进行中') + '</span></div>' +
       '<p class="lab-sub">' + U.esc(exp.description) + '</p></div>' +
-      '<div class="lab-head-right"><button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
+      '<div class="lab-head-right">' +
+      (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
+      '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
+      '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
+      '<div class="principle-main"><div class="principle-formula"><span>' + U.esc(exp.formula) + '</span><button class="icon-btn copy-code" data-copy="' + U.esc(exp.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
+      '<p>' + U.esc(exp.principle) + '</p>' +
+      (exp.formulaNote ? '<div class="principle-note">' + U.esc(exp.formulaNote) + '</div>' : '') +
+      '</div></section>' +
       '<div class="lab-layout"><section class="stage-card" id="stageCard">' +
       '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span></div>' +
       '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool" data-action="expand" title="全屏"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg></button></div></div>' +
@@ -621,7 +669,9 @@
       '<div class="chart-wrap" id="chartWrap"><canvas id="labChart"></canvas><div class="chart-tooltip" id="chartTip"></div></div>' +
       '<div class="data-table-wrap" id="dataTableWrap"></div>' +
       '<div class="chart-foot" id="chartFoot"></div></section>' +
-      '<section class="guide-card card"><div class="guide-head"><h3>实验向导</h3><p>点击步骤可标记完成</p></div><ol class="steps" id="steps">' + stepHTML + '</ol><div class="conclusion" id="conclusion">' + ui('info') + '<span>调整变量并采集数据，结论会在这里更新。</span></div><div class="theory"><div class="eyebrow">实验原理</div><div class="formula-box"><span>' + U.esc(exp.formula) + '</span><button class="icon-btn copy-code" data-copy="' + U.esc(exp.formula) + '" title="复制公式">' + ui('copy') + '</button></div><p>' + U.esc(exp.formulaNote || exp.principle) + '</p></div></section></div>' +
+      '<section class="guide-card card"><div class="guide-head"><div><h3>实验向导</h3><p>点击步骤可标记完成</p></div>' +
+      (exp.stepVersions ? '<div class="step-switch"><button data-step-variant="simple" class="' + (view.stepVariant === 'simple' ? 'active' : '') + '">简易</button><button data-step-variant="complex" class="' + (view.stepVariant === 'complex' ? 'active' : '') + '">复杂</button></div>' : '') +
+      '</div><ol class="steps" id="steps">' + stepHTML + '</ol><div class="conclusion" id="conclusion">' + ui('info') + '<span>调整变量并采集数据，结论会在这里更新。</span></div></section></div>' +
       '</div>';
 
     const current = state.currentLab = {
@@ -1038,16 +1088,29 @@
     if (styleChoice) { applyUiStyle(styleChoice.dataset.setStyle, true); return; }
     const step = e.target.closest('[data-step]');
     if (step && state.currentLab) {
+      const cur = state.currentLab;
       const i = Number(step.dataset.step);
       const s = U.load();
       s.steps = s.steps || {};
-      const arr = s.steps[state.currentLab.id] || [];
+      const key = stepStorageKey(cur.id, cur.view);
+      const arr = s.steps[key] || [];
       arr[i] = !arr[i];
-      s.steps[state.currentLab.id] = arr;
+      s.steps[key] = arr;
       U.save({ steps: s.steps });
       step.classList.toggle('done', !!arr[i]);
       step.querySelector('.step-check').innerHTML = arr[i] ? ui('check') : (i + 1);
-      if (arr.length === state.currentLab.exp.steps.length && arr.every(Boolean)) markComplete(state.currentLab.exp, true);
+      if (arr.length === activeSteps(cur.exp, cur.view).length && arr.every(Boolean)) markComplete(cur.exp, true);
+      return;
+    }
+    const stepVariant = e.target.closest('[data-step-variant]');
+    if (stepVariant && state.currentLab) {
+      const cur = state.currentLab;
+      const variant = stepVariant.dataset.stepVariant === 'complex' ? 'complex' : 'simple';
+      cur.view.stepVariant = variant;
+      U.save({ stepVariants: Object.assign({}, U.load().stepVariants || {}, { [cur.id]: variant }) });
+      const list = $('#steps');
+      if (list) list.innerHTML = stepListHTML(cur.exp, cur.view);
+      $$('.step-switch button').forEach((b) => b.classList.toggle('active', b.dataset.stepVariant === variant));
       return;
     }
     const tab = e.target.closest('[data-tab]');
@@ -1075,6 +1138,7 @@
       if (action === 'continue') { const last = resolveExp(U.load().last) || OL.experiments[0]; navigate('lab/' + last.id); }
       else if (action === 'open-workshop') navigate('workshop');
       else if (action === 'open-settings') openSettings();
+      else if (action === 'error-analysis') openErrorAnalysis();
       else if (action === 'finish-welcome') finishWelcome();
       else if (action === 'reopen-welcome') openWelcome();
       else if (action === 'close-modal') closeModal();

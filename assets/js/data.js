@@ -90,6 +90,18 @@
       formula: 'F = kx', formulaNote: '在弹性限度内，弹力与伸长量成正比；F–x 图像的斜率表示劲度系数 k。',
       principle: '弹簧发生弹性形变时，恢复力与形变量成正比。实验中用钩码重力充当弹力，通过多次测量减小偶然误差。',
       steps: ['记录弹簧自然长度', '逐个增加钩码并等待静止', '测量弹簧总长度，计算伸长量', '绘制 F–x 图像并求劲度系数'],
+      stepVersions: {
+        simple: ['记录弹簧自然长度', '逐个增加钩码并等待静止', '测量弹簧总长度，计算伸长量', '绘制 F–x 图像并求劲度系数'],
+        complex: [
+          '将弹簧竖直悬挂在铁架台上，待静止后记录指针位置，作为自然长度 L₀；刻度尺估读到 0.1 cm。',
+          '在弹簧下端挂上最小钩码，等待弹簧完全静止，记录钩码总质量 m 和指针位置。',
+          '逐个增加钩码，每次增加后等待静止，记录对应的总质量 m 和指针位置；注意不要超过弹簧的弹性限度。',
+          '用刻度尺测量每次弹簧总长度 L，计算伸长量 x = L − L₀，并填写数据记录表。',
+          '以弹力 F = mg 为纵轴、伸长量 x 为横轴描点，用直尺作出拟合直线。',
+          '求出 F–x 图线的斜率 k，分析斜率与弹簧劲度系数的关系，并检查图线是否通过原点。',
+          '换用不同弹簧或重复测量，讨论弹性限度、刻度读数、钩码摆动等误差来源。'
+        ]
+      },
       controls: [
         { key: 'm', label: '钩码质量 m', min: 10, max: 500, step: 10, value: 100, unit: 'g', decimals: 0 },
         { key: 'k', label: '弹簧劲度系数 k', min: 10, max: 60, step: 1, value: 25, unit: 'N/m', decimals: 0 }
@@ -230,6 +242,17 @@
       formula: 'ρ = RS/L = πRd²/(4L)', formulaNote: '金属丝直径需用螺旋测微器多次测量取平均，电阻用伏安法测量。',
       principle: '电阻定律表明，导体电阻与长度成正比、与横截面积成反比，比例系数为电阻率。',
       steps: ['测量金属丝有效长度 L', '用螺旋测微器测直径 d', '连接伏安法电路，测 U 和 I', '计算 R、S 与电阻率 ρ'],
+      errorAnalysis: {
+        title: '伏安法测电阻：电流表、电压表内阻引起的系统误差',
+        lead: '电流表内阻 R_A 不为零，电压表内阻 R_V 也不是无限大。它们会改变待测电阻两端的电压或流过待测电阻的电流，使按 R测 = U/I 算出的结果系统性地偏大或偏小。',
+        formula: 'R测 = U / I',
+        cases: [
+          { kind: 'smaller', name: '电流表外接法（电压表直接并联待测电阻）', formula: 'R测 = R_x·R_V / (R_x + R_V) < R_x', verdict: '测量值偏小' },
+          { kind: 'larger', name: '电流表内接法（电压表并联电阻与电流表串联支路）', formula: 'R测 = R_x + R_A > R_x', verdict: '测量值偏大' }
+        ],
+        method: '当 R_x ≪ R_V 时，电压表分流可以忽略，宜采用外接法；当 R_x ≫ R_A 时，电流表分压可以忽略，宜采用内接法。若两者都不可忽略，应进行电表内阻修正。',
+        conclusion: '不能笼统地说伏安法一定偏大或偏小：外接法使测量值偏小，内接法使测量值偏大。判断误差方向的关键是看电表内阻相对待测电阻的大小。'
+      },
       controls: [
         { key: 'material', label: '金属材料', type: 'select', value: 'nichrome', options: [{ value: 'nichrome', label: '镍铬合金' }, { value: 'copper', label: '铜' }, { value: 'aluminum', label: '铝' }] },
         { key: 'L', label: '金属丝长度 L', min: 0.4, max: 1.2, step: 0.02, value: 0.8, unit: 'm', decimals: 2 },
@@ -246,6 +269,17 @@
       formula: 'R = U/I ，  P = UI', formulaNote: '图线上某点与原点连线的斜率等于 1/R；曲线向电流轴弯曲说明电阻增大。',
       principle: '金属的电阻率随温度升高而增大。灯泡两端电压越大，灯丝温度越高，电阻越大。',
       steps: ['连接分压式供电电路', '从零开始缓慢升高电压', '记录多组电压与电流值', '描点连线并分析电阻变化'],
+      errorAnalysis: {
+        title: '小灯泡伏安特性：电表内阻与温度效应的叠加',
+        lead: '小灯泡的灯丝电阻随温度变化，本身就不是线性元件；同时电流表内阻 R_A 和电压表内阻 R_V 会带来测量误差。分析时要把“电表内阻造成的系统误差”和“灯丝升温造成的电阻变化”区分开。',
+        formula: 'R测 = U / I ，  P = U·I',
+        cases: [
+          { kind: 'smaller', name: '电流表外接法', formula: 'R测 = R_x(U)·R_V / (R_x(U) + R_V) < R_x(U)', verdict: '同一电压下测量值偏小' },
+          { kind: 'larger', name: '电流表内接法', formula: 'R测 = R_x(U) + R_A > R_x(U)', verdict: '同一电压下测量值偏大' }
+        ],
+        method: '小灯泡通常采用分压电路，使电压可以从零开始连续调节。电压表内阻越大、电流表内阻越小，测量越接近真实值；灯丝温度越高，真实电阻 R_x(U) 越大。',
+        conclusion: 'I–U 图线的弯曲主要来自灯丝温度升高，而电表内阻会造成额外的系统性偏移。读数时应同时说明接法，否则不能只根据曲线判断“电阻变大还是变小”。'
+      },
       controls: [
         { key: 'U', label: '电压 U', min: 0, max: 12, step: 0.1, value: 6, unit: 'V', decimals: 1 },
         { key: 'R0', label: '冷态电阻 R₀', min: 5, max: 30, step: 1, value: 12, unit: 'Ω', decimals: 0 }
@@ -260,6 +294,17 @@
       formula: 'U = E − Ir', formulaNote: '纵轴截距是 E，横轴截距是短路电流 E/r，斜率绝对值为 r。',
       principle: '闭合电路欧姆定律：E = U + Ir。电源内阻导致路端电压随电流增大而降低。',
       steps: ['按电路图连接电源、开关与变阻器', '改变外电阻，记录多组 U、I', '绘制 U–I 图像', '由截距与斜率求出 E 和 r'],
+      errorAnalysis: {
+        title: '电源电动势和内阻：电压表分流与电流表分压',
+        lead: '电压表内阻 R_V 会从电源分流，电流表内阻 R_A 会分压。按理想电表公式 U = E − Ir 处理 U–I 图线时，截距和斜率会偏离真实值。',
+        formula: 'U = E − I·r',
+        cases: [
+          { kind: 'smaller', name: '电压表直接并接电源两端，电流表测负载支路', formula: 'E测 = E / (1 + r/R_V) < E\nr测 = r / (1 + r/R_V) < r', verdict: 'E、r 均偏小' },
+          { kind: 'larger', name: '电流表接在干路，电压表测负载两端', formula: 'r测 = r + R_A > r\nE测 ≈ E', verdict: '内阻偏大' }
+        ],
+        method: '电压表内阻越大，分流越小；电流表内阻越小，分压越小。若 R_V 不是远大于 r、R_A 不是远小于 r，应按实际电路重新推导 U–I 关系，而不能直接套用理想电表公式。',
+        conclusion: '本实验的误差方向取决于电表接法：电压表并接电源时 E、r 通常偏小；电流表接入干路时测得的 r 会包含 R_A，因而偏大。'
+      },
       controls: [
         { key: 'E', label: '电动势 E', min: 1.5, max: 12, step: 0.1, value: 6, unit: 'V', decimals: 1 },
         { key: 'r', label: '内阻 r', min: 0.1, max: 3, step: 0.05, value: 1, unit: 'Ω', decimals: 2 },
@@ -275,6 +320,18 @@
       formula: 'I = U/(R + R_g) ，  R_x = E/(I) − R内', formulaNote: '欧姆挡刻度不均匀，换挡后必须重新进行欧姆调零。',
       principle: '多用电表通过切换内部电路实现不同测量功能。测电阻时使用内部电源，待测电阻必须与外部电源断开。',
       steps: ['检查指针是否指在零刻度', '选择测量功能与合适量程', '拖动红黑表笔，分别接触待测元件两端', '读数并记录测量结果'],
+      errorAnalysis: {
+        title: '欧姆挡：内部电源、内阻与调零误差',
+        lead: '欧姆挡利用表内电源和已知内阻测量电阻。若电池电动势下降、内阻变大，或测量前没有短接表笔重新调零，指针电流与刻度对应的电阻值就会偏离真实值。',
+        formula: 'R_x = E / I − R内',
+        cases: [
+          { kind: 'larger', name: '电池老化：E 下降或 R内 增大', formula: '同一 R_x 下 I 变小 → 指针落在更大的电阻刻度', verdict: '读数通常偏大' },
+          { kind: 'note', name: '欧姆调零不准或换挡后未重新调零', formula: 'R测 = E / I − R内(实际) ≠ R_x', verdict: '可能偏大或偏小' },
+          { kind: 'note', name: '量程选择或读数误差', formula: '倍率 × 刻度读数 ≠ R_x', verdict: '由读数与倍率决定' }
+        ],
+        method: '每次换挡后都要把红黑表笔短接，调节欧姆调零旋钮使指针指到 0 Ω；测量时待测元件必须与外部电源断开。读数应结合所选倍率，并注意欧姆刻度不均匀。',
+        conclusion: '欧姆挡的误差不只来自读数。电池老化通常使读数偏大；调零不准或倍率读错时可能偏大也可能偏小，因此“换挡后重新调零”和“确认倍率”是判断误差方向的前提。'
+      },
       controls: [
         { key: 'mode', label: '测量功能', type: 'select', value: 'resistance', options: [{ value: 'resistance', label: '电阻 Ω' }, { value: 'voltage', label: '直流电压 V' }, { value: 'current', label: '直流电流 mA' }] },
         { key: 'range', label: '量程', type: 'select', value: 'auto', options: [{ value: 'auto', label: '自动量程' }, { value: 'low', label: '低量程' }, { value: 'high', label: '高量程' }] },
