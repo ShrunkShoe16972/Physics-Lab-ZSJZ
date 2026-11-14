@@ -139,10 +139,10 @@
     step(state, dt, view) {
       const f = state.mu * state.m * 9.8;
       const a = Math.max(0, state.F - f) / state.m;
-      if (a <= 0) { view.playing = false; return; }
+      if (a <= 0) return;
       const tEnd = Math.sqrt(2 * state.s / a);
-      view.t = Math.min(tEnd, view.t + dt * 0.45);
-      if (view.t >= tEnd - 0.001) view.playing = false;
+      view.t += dt * 0.45;
+      if (tEnd > 0 && view.t >= tEnd) view.t = view.t % tEnd;
     },
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 34 });
@@ -262,7 +262,7 @@
     hint: '释放摆球 · 观察动能与势能的转化',
     init(state) { state._theta = U.deg(state.angle); state._omega = 0; state._trail = []; },
     onControl(key, state, view) {
-      if (key === 'angle' || key === 'length') {
+      if (!view.playing && (key === 'angle' || key === 'length')) {
         state._theta = U.deg(state.angle); state._omega = 0; state._trail = [];
         view.t = 0; view.records.length = 0;
       }
@@ -410,8 +410,8 @@
     playable: true,
     hint: '播放碰撞 · 对比碰撞前后的总动量',
     step(state, dt, view) {
-      view.t = Math.min(4.6, view.t + dt * 0.55);
-      if (view.t >= 4.6 - 0.001) view.playing = false;
+      view.t += dt * 0.55;
+      if (view.t >= 4.6) view.t = view.t % 4.6;
     },
     _stateAt(state, t) {
       const v1 = state.v1, v2 = state.v2;
@@ -561,8 +561,10 @@
     hint: '改变摆长并记录周期 · 用 T²–L 求 g',
     init(state) { state._theta = U.deg(state.amp); state._omega = 0; },
     onControl(key, state, view) {
-      if (key === 'L' || key === 'g' || key === 'amp') {
-        state._theta = U.deg(state.amp); state._omega = 0; view.t = 0;
+      if (!view.playing && (key === 'L' || key === 'g' || key === 'amp')) {
+        const T = 2 * Math.PI * Math.sqrt(state.L / state.g);
+        state._theta = U.deg(state.amp) * Math.cos(2 * Math.PI * view.t / T);
+        state._omega = -U.deg(state.amp) * 2 * Math.PI / T * Math.sin(2 * Math.PI * view.t / T);
       }
     },
     step(state, dt, view) {

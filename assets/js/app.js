@@ -442,11 +442,6 @@
     viewEl.innerHTML = '<div class="view-inner">' +
       '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">21 个实验，<br>一条完整的物理脉络。</h1><p class="page-sub">力学、电磁学、光学与分子热学。每个实验都可以拖动变量、记录数据、生成图像。</p></div>' +
       '<div class="library-progress"><span class="ring" style="--p:' + pct + '%"></span><span><b style="color:var(--text)">' + done + '/21</b> 已完成</span></div></div>' +
-      '<div class="category-strip">' + Object.keys(OL.categories).map((k) => {
-        const c = OL.categories[k];
-        const n = OL.byCategory(k).length;
-        return '<button class="cat-card" data-cat="' + k + '" style="--cat:' + c.color + '"><span class="cat-ico">' + OL.icon(c.icon) + '</span><span><strong>' + c.name + '</strong><span>' + c.desc + '</span></span><span class="cat-n">' + pad(n) + '</span></button>';
-      }).join('') + '</div>' +
       '<div class="filter-row" id="libFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
       '<div class="filter-row book-filter-row" id="libBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
@@ -642,6 +637,14 @@
       stepVariant: (exp.stepVersions && (U.load().stepVariants || {})[id] === 'complex') ? 'complex' : 'simple'
     };
     const cat = catOf(exp);
+    const expIndex = OL.experiments.findIndex((e) => e.id === id);
+    const labSwitcher = expIndex >= 0
+      ? '<div class="lab-switcher" aria-label="快速切换实验">' +
+        '<button data-action="prev-lab" title="上一个实验" aria-label="上一个实验">' + ui('back') + '</button>' +
+        '<span>' + pad(expIndex + 1) + ' / ' + pad(OL.experiments.length) + '</span>' +
+        '<button data-action="next-lab" title="下一个实验" aria-label="下一个实验">' + ui('arrow') + '</button>' +
+        '</div>'
+      : '';
     const stepHTML = stepListHTML(exp, view);
 
     viewEl.innerHTML = '<div class="lab-page" style="--accent:' + (exp.accent || cat.color) + '">' +
@@ -649,7 +652,7 @@
       '<button class="back-link" data-route="library">' + ui('back') + ' 返回实验库</button>' +
       '<div class="lab-title-row"><h1>' + U.esc(exp.title) + '</h1><span class="lab-id">#' + pad(exp.n || 0) + '</span><span class="pill accent">' + U.esc(cat.name) + '</span><span class="pill">' + U.esc(exp.difficulty || '基础') + '</span><span class="pill' + (view.done ? ' green' : '') + '" id="labDonePill">' + (view.done ? '已完成' : '进行中') + '</span></div>' +
       '<p class="lab-sub">' + U.esc(exp.description) + '</p></div>' +
-      '<div class="lab-head-right">' +
+      '<div class="lab-head-right">' + labSwitcher +
       (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
       '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
@@ -659,7 +662,7 @@
       '</div></section>' +
       '<div class="lab-layout"><section class="stage-card" id="stageCard">' +
       '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span></div>' +
-      '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool" data-action="expand" title="全屏"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg></button></div></div>' +
+      '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool stage-expand" data-action="expand" title="放大实验舞台" aria-label="放大实验舞台"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg><span>放大</span></button></div></div>' +
       '<div class="stage-wrap"><canvas id="labCanvas"></canvas></div>' +
       (canPlay(lab) ? '<div class="stage-tip"><kbd>SPACE</kbd> 播放 / 暂停</div>' : '') +
       '<div class="stage-readouts" id="stageReadouts"></div></section>' +
@@ -708,11 +711,16 @@
         const key = range.dataset.controlRange;
         const c = cur.exp.controls.find((x) => x.key === key);
         const val = Number(range.value);
-        cur.state[key] = val;
+        if (cur.view.playing) {
+          cur._ease = cur._ease || {};
+          cur._ease[key] = { from: Number(cur.state[key]), to: val, t0: performance.now() };
+        } else {
+          cur.state[key] = val;
+          if (cur.lab.onControl) cur.lab.onControl.call(cur.lab, key, cur.state, cur.view);
+        }
         const out = $('#val-' + key);
         if (out) out.innerHTML = U.fmt(val, c.decimals == null ? 2 : c.decimals) + '<span>' + U.esc(c.unit || '') + '</span>';
         range.style.setProperty('--fill', ((val - c.min) / (c.max - c.min) * 100) + '%');
-        if (cur.lab.onControl) cur.lab.onControl.call(cur.lab, key, cur.state, cur.view);
         cur.view.dirty = true;
         updatePlayButton();
         updateReadouts();
@@ -819,6 +827,23 @@
     }
   }
 
+  function easeLabState(cur, now) {
+    if (!cur._ease) return false;
+    let active = false;
+    Object.keys(cur._ease).forEach((key) => {
+      const a = cur._ease[key];
+      const p = U.clamp((now - a.t0) / 300, 0, 1);
+      cur.state[key] = a.from + (a.to - a.from) * U.smoothstep(p);
+      if (p >= 1) {
+        cur.state[key] = a.to;
+        delete cur._ease[key];
+      } else {
+        active = true;
+      }
+    });
+    return active;
+  }
+
   function startLabLoop() {
     const cur = state.currentLab;
     if (!cur) return;
@@ -827,6 +852,7 @@
       if (!cur.alive || state.currentLab !== cur) return;
       const dt = Math.min(0.04, Math.max(0, (now - cur.view.lastTs) / 1000));
       cur.view.lastTs = now;
+      if (easeLabState(cur, now)) cur.view.dirty = true;
       if (cur.view.playing) {
         if (cur.lab.step) {
           cur.lab.step.call(cur.lab, cur.state, dt, cur.view);
@@ -1011,6 +1037,7 @@
     if (!cur) return;
     Object.keys(cur.state).forEach((k) => delete cur.state[k]);
     Object.assign(cur.state, makeState(cur.exp));
+    cur._ease = {};
     cur.view.t = 0; cur.view.playing = false; cur.view.records = []; cur.view.autoClock = 0;
     cur.view.dirty = true;
     if (cur.lab.init) cur.lab.init.call(cur.lab, cur.state, cur.view);
@@ -1139,6 +1166,16 @@
       else if (action === 'open-workshop') navigate('workshop');
       else if (action === 'open-settings') openSettings();
       else if (action === 'error-analysis') openErrorAnalysis();
+      else if (action === 'prev-lab' || action === 'next-lab') {
+        if (state.currentLab) {
+          const idx = OL.experiments.findIndex((e) => e.id === state.currentLab.id);
+          if (idx >= 0) {
+            const delta = action === 'prev-lab' ? -1 : 1;
+            const next = OL.experiments[(idx + delta + OL.experiments.length) % OL.experiments.length];
+            navigate('lab/' + next.id);
+          }
+        }
+      }
       else if (action === 'finish-welcome') finishWelcome();
       else if (action === 'reopen-welcome') openWelcome();
       else if (action === 'close-modal') closeModal();
@@ -1162,8 +1199,15 @@
       else if (action === 'expand') {
         const card = $('#stageCard');
         if (card) {
-          if (!document.fullscreenElement) card.requestFullscreen && card.requestFullscreen();
-          else document.exitFullscreen && document.exitFullscreen();
+          if (!document.fullscreenElement) {
+            if (card.requestFullscreen) {
+              const p = card.requestFullscreen();
+              if (p && p.catch) p.catch(() => toast('浏览器未允许全屏，请使用浏览器菜单放大', 'error'));
+            }
+          } else if (document.exitFullscreen) {
+            const p = document.exitFullscreen();
+            if (p && p.catch) p.catch(() => {});
+          }
         }
       }
       return;
@@ -1221,16 +1265,25 @@
   });
 
   $('#settingsBtn').addEventListener('click', openSettings);
-  $('#themeBtn').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark', true));
   $('#searchBtn').addEventListener('click', openPalette);
   $('#helpBtn').addEventListener('click', openHelp);
-  const focusBtn = $('#focusBtn');
-  if (focusBtn) focusBtn.addEventListener('click', () => {
-    state.focus = !state.focus;
+  const sidebarToggle = $('#sidebarToggle');
+  function setSidebarFocus(focus) {
+    state.focus = !!focus;
     document.body.classList.toggle('focus-mode', state.focus);
-    focusBtn.querySelector('span:last-child').textContent = state.focus ? '退出专注' : '实验模式';
-    setTimeout(() => { if (state.currentLab) { state.currentLab.view.dirty = true; state.currentLab.chart.draw(); } }, 320);
-  });
+    if (sidebarToggle) {
+      sidebarToggle.setAttribute('aria-expanded', state.focus ? 'false' : 'true');
+      sidebarToggle.setAttribute('aria-label', state.focus ? '展开侧边栏' : '收起侧边栏');
+      sidebarToggle.setAttribute('title', state.focus ? '展开侧边栏' : '收起侧边栏');
+    }
+    setTimeout(() => {
+      if (state.currentLab) {
+        state.currentLab.view.dirty = true;
+        if (state.currentLab.chart) state.currentLab.chart.draw();
+      }
+    }, 380);
+  }
+  if (sidebarToggle) sidebarToggle.addEventListener('click', () => setSidebarFocus(!state.focus));
   $('#menuBtn').addEventListener('click', () => {
     sidebar.classList.add('open'); scrim.classList.add('show');
   });

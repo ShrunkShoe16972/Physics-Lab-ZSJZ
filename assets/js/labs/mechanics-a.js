@@ -19,8 +19,8 @@
     hint: '播放后自动采样 · 空格暂停',
     init(state) { state._tMax = 2.4; },
     step(state, dt, view) {
-      view.t = Math.min(state._tMax, view.t + dt * 0.55);
-      if (view.t >= state._tMax - 0.001) view.playing = false;
+      view.t += dt * 0.55;
+      if (view.t > state._tMax) view.t -= state._tMax;
     },
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 34 });
@@ -490,8 +490,8 @@
     init(state) { state._t = 0; },
     step(state, dt, view) {
       const tf = Math.sqrt(2 * state.h / state.g);
-      view.t = Math.min(tf, view.t + dt * 0.5);
-      if (view.t >= tf - 0.0005) view.playing = false;
+      view.t += dt * 0.5;
+      if (tf > 0 && view.t >= tf) view.t = view.t % tf;
     },
     draw(ctx, w, h, state, view) {
       // sky
