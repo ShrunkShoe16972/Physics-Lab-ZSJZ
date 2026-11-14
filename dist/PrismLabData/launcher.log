@@ -1,0 +1,8 @@
+﻿2026-11-14 16:33:29  Starting Prism portable
+2026-11-14 16:33:29  Server started at http://127.0.0.1:4380/
+2026-11-14 16:33:29  OpenBrowser http://127.0.0.1:4380/
+2026-11-14 16:33:29  Trying browser C:\Program Files\Google\Chrome\Application\chrome.exe
+2026-11-14 16:33:29  Browser process 4268
+2026-11-14 16:33:29  Browser exited with code -2147483645, trying next option
+2026-11-14 16:33:29  Trying browser C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
+2026-11-14 16:33:29  Browser process 10700
