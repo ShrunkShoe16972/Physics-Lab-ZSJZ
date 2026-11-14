@@ -1,0 +1,11 @@
+# Local / OS noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Browser or tooling artifacts
+.cache/
+node_modules/
+dist/
+
+# Keep the user-facing workspace, source, docs and previews tracked.

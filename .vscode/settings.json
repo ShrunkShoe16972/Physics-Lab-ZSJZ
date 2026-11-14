@@ -1,0 +1,12 @@
+{
+  "files.encoding": "utf8",
+  "files.eol": "\r\n",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.wordWrap": "on",
+  "liveServer.settings.port": 4178,
+  "liveServer.settings.root": "/",
+  "search.exclude": {
+    "assets/img": true
+  }
+}
