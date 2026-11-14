@@ -14,6 +14,23 @@
   const uid = (p) => (p || 'id') + '-' + Math.random().toString(36).slice(2, 8);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const deg = (d) => d * Math.PI / 180;
+
+  function texHTML(tex, displayMode) {
+    const source = String(tex == null ? '' : tex);
+    if (window.katex && source) {
+      try {
+        return window.katex.renderToString(source, {
+          displayMode: !!displayMode,
+          throwOnError: false,
+          strict: false,
+          trust: false
+        });
+      } catch (e) {
+        /* fall through to text */
+      }
+    }
+    return '<span class="tex-fallback">' + esc(source) + '</span>';
+  }
   const rad = (r) => r * 180 / Math.PI;
 
   function fmt(v, decimals) {
@@ -333,6 +350,7 @@
   function iconMoon() { return '<svg viewBox="0 0 24 24"><path d="M20.2 14.4A8.5 8.5 0 0 1 9.6 3.8 8.5 8.5 0 1 0 20.2 14.4Z"/></svg>'; }
 
   OL.utils = { $, $$, clamp, lerp, smoothstep, uid, esc, deg, rad, fmt, sci, sup, throttle, download, toCSV, load, save, reset, complete, isDone, hexA };
+  OL.tex = { render: texHTML, available: !!window.katex };
   OL.ui = OL.ui || { fontScale: 1, canvasLabelScale: 1.12, chartFontScale: 1 };
   OL.store = { load, save, reset, complete, isDone, key: storeKey };
   OL.canvas = { prepare, roundRect, fillRound, label, line, arrow, dot, ball, glowCircle, hexA, grid, floorLine, spring, bars, axis, dashedPath };

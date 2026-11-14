@@ -18,6 +18,7 @@ Copy-Item (Join-Path $root 'index.html') (Join-Path $stage 'index.html')
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'assets') | Out-Null
 Copy-Item (Join-Path $root 'assets\css') (Join-Path $stage 'assets\css') -Recurse
 Copy-Item (Join-Path $root 'assets\js') (Join-Path $stage 'assets\js') -Recurse
+Copy-Item (Join-Path $root 'assets\vendor') (Join-Path $stage 'assets\vendor') -Recurse
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [System.IO.Compression.CompressionLevel]::Optimal, $false)

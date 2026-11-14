@@ -483,6 +483,73 @@
   };
   experiments.forEach(function (e) { e.book = bookByExp[e.id] || 'b1'; });
 
+  const formulaTexById = {
+    'accelerated-motion': 'v = v_0 + at',
+    'hooke-law': 'F = kx',
+    'force-parallelogram': 'F = \\sqrt{F_1^2 + F_2^2 + 2F_1F_2\\cos\\theta}',
+    'newton-second': 'a = \\frac{F}{m}',
+    'projectile': 'x = v_0 t,\\quad y = \\frac{1}{2}gt^2',
+    'centripetal': 'F = m\\omega^2 r = \\frac{mv^2}{r}',
+    'work-energy': 'W = \\frac{1}{2}mv^2',
+    'mechanical-energy': 'mgh_1 + \\frac{1}{2}mv_1^2 = mgh_2 + \\frac{1}{2}mv_2^2',
+    'momentum': 'm_1v_1 + m_2v_2 = m_1v_1\' + m_2v_2\'',
+    'simple-pendulum': 'T = 2\\pi\\sqrt{\\frac{L}{g}} \\Rightarrow T^2 = \\frac{4\\pi^2}{g}L',
+    'resistivity': '\\rho = \\frac{RS}{L} = \\frac{\\pi R d^2}{4L}',
+    'bulb-curve': 'R = \\frac{U}{I},\\quad P = UI',
+    'emf-internal': 'U = E - Ir',
+    'multimeter': 'I = \\frac{U}{R + R_g},\\quad R_x = \\frac{E}{I} - R_{\\mathrm{in}}',
+    'ampere-force': 'F = BIL\\sin\\theta',
+    'induction': 'E = n\\frac{\\Delta\\Phi}{\\Delta t}',
+    'transformer': '\\frac{U_1}{U_2} = \\frac{n_1}{n_2},\\quad \\frac{I_1}{I_2} = \\frac{n_2}{n_1}',
+    'capacitor': 'C = \\frac{\\varepsilon_0\\varepsilon_r S}{d},\\quad Q = CU,\\quad E = \\frac{U}{d}',
+    'refraction': 'n = \\frac{\\sin i}{\\sin r}',
+    'double-slit': '\\Delta x = \\frac{\\lambda L}{d} \\Rightarrow \\lambda = \\frac{\\Delta x\\,d}{L}',
+    'oil-film': 'd = \\frac{V}{S}'
+  };
+  const errorTexById = {
+    'resistivity': {
+      formula: 'R_{\\mathrm{meas}} = \\frac{U}{I}',
+      cases: [
+        'R_{\\mathrm{meas}} = \\frac{R_x R_V}{R_x + R_V} < R_x',
+        'R_{\\mathrm{meas}} = R_x + R_A > R_x'
+      ]
+    },
+    'bulb-curve': {
+      formula: 'R_{\\mathrm{meas}} = \\frac{U}{I},\\quad P = UI',
+      cases: [
+        'R_{\\mathrm{meas}} = \\frac{R_x(U)R_V}{R_x(U) + R_V} < R_x(U)',
+        'R_{\\mathrm{meas}} = R_x(U) + R_A > R_x(U)'
+      ]
+    },
+    'emf-internal': {
+      formula: 'U = E - Ir',
+      cases: [
+        'E_{\\mathrm{meas}} = \\frac{E}{1 + r/R_V} < E,\\quad r_{\\mathrm{meas}} = \\frac{r}{1 + r/R_V} < r',
+        'r_{\\mathrm{meas}} = r + R_A > r'
+      ]
+    },
+    'multimeter': {
+      formula: 'R_x = \\frac{E}{I} - R_{\\mathrm{in}}',
+      cases: [
+        'I \\downarrow \\Rightarrow R_{\\mathrm{meas}} \\uparrow',
+        'R_{\\mathrm{meas}} = \\frac{E}{I} - R_{\\mathrm{in}} \\ne R_x',
+        'R_{\\mathrm{meas}} = k\\theta'
+      ]
+    }
+  };
+  experiments.forEach(function (e) {
+    if (formulaTexById[e.id]) e.formulaTex = formulaTexById[e.id];
+    const et = errorTexById[e.id];
+    if (et && e.errorAnalysis) {
+      e.errorAnalysis.formulaTex = et.formula;
+      if (e.errorAnalysis.cases && et.cases) {
+        e.errorAnalysis.cases.forEach(function (c, i) {
+          if (et.cases[i]) c.tex = et.cases[i];
+        });
+      }
+    }
+  });
+
   function get(id) { return experiments.find(function (e) { return e.id === id; }); }
   function categoryOf(exp) { return categories[exp.category]; }
   function byCategory(cat) { return experiments.filter(function (e) { return e.category === cat; }); }

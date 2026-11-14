@@ -231,12 +231,12 @@
     const cases = (ea.cases || []).map((c) =>
       '<div class="error-case ' + U.esc(c.kind || 'note') + '">' +
       '<b>' + U.esc(c.name) + '</b>' +
-      '<code>' + U.esc(c.formula) + '</code>' +
+      '<div class="error-case-formula">' + OL.tex.render(c.tex || c.formula, false) + '</div>' +
       '<em>' + U.esc(c.verdict) + '</em></div>'
     ).join('');
     openModal('误差分析', [
       '<p class="error-analysis-lead">' + U.esc(ea.lead) + '</p>',
-      '<div class="error-formula">' + U.esc(ea.formula) + '</div>',
+      '<div class="error-formula">' + OL.tex.render(ea.formulaTex || ea.formula, true) + '</div>',
       '<div class="error-case-grid">' + cases + '</div>',
       '<p class="error-method">' + U.esc(ea.method) + '</p>',
       '<div class="error-conclusion"><b>误差方向判断：</b>' + U.esc(ea.conclusion) + '</div>'
@@ -653,7 +653,7 @@
       (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
       '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
-      '<div class="principle-main"><div class="principle-formula"><span>' + U.esc(exp.formula) + '</span><button class="icon-btn copy-code" data-copy="' + U.esc(exp.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
+      '<div class="principle-main"><div class="principle-formula"><div class="formula-tex">' + OL.tex.render(exp.formulaTex || exp.formula, true) + '</div><button class="icon-btn copy-code" data-copy="' + U.esc(exp.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
       '<p>' + U.esc(exp.principle) + '</p>' +
       (exp.formulaNote ? '<div class="principle-note">' + U.esc(exp.formulaNote) + '</div>' : '') +
       '</div></section>' +
