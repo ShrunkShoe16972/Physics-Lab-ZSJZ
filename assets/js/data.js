@@ -24,6 +24,16 @@
     }
   };
 
+  /* 粤教版（2019 课标版）册次分类。分类只影响浏览，不改变原有学科分类。 */
+  const books = {
+    b1: { name: '必修第一册', short: '必修一', en: 'Compulsory 1', color: '#0a84ff' },
+    b2: { name: '必修第二册', short: '必修二', en: 'Compulsory 2', color: '#30b0c7' },
+    b3: { name: '必修第三册', short: '必修三', en: 'Compulsory 3', color: '#ff9f0a' },
+    x1: { name: '选择性必修第一册', short: '选必一', en: 'Selective 1', color: '#bf5af2' },
+    x2: { name: '选择性必修第二册', short: '选必二', en: 'Selective 2', color: '#ff6482' },
+    x3: { name: '选择性必修第三册', short: '选必三', en: 'Selective 3', color: '#30d158' }
+  };
+
   const paths = {
     mechanics: '<circle cx="24" cy="24" r="5"/><ellipse cx="24" cy="24" rx="18" ry="7" transform="rotate(-28 24 24)"/><ellipse cx="24" cy="24" rx="18" ry="7" transform="rotate(32 24 24)"/><circle cx="39" cy="15" r="2" fill="currentColor" stroke="none"/>',
     electricity: '<path d="M26 5 12 27h10l-2 16 16-24H25l1-14Z"/>',
@@ -258,17 +268,25 @@
     },
     {
       n: 14, id: 'multimeter', title: '练习使用多用电表',
-      short: '旋转挡位，用一只表测量电阻、电压和电流。',
+      short: '旋转挡位，拖动红黑表笔测量电阻、电压和电流。',
       category: 'electricity', accent: '#ff9f0a', icon: 'multimeter',
-      difficulty: '基础', time: '10 分钟', tags: ['多用电表', '测量工具'],
-      description: '多用电表集电压表、电流表与欧姆表于一体。选择正确的挡位与量程，读出待测元件的数值，并理解表盘刻度不均匀的原因。',
+      difficulty: '基础', time: '10 分钟', tags: ['多用电表', '表笔接线', '测量工具'],
+      description: '多用电表集电压表、电流表与欧姆表于一体。选择正确的挡位与量程，拖动红黑表笔接触待测元件两端，读出数值，并理解表盘刻度不均匀的原因。',
       formula: 'I = U/(R + R_g) ，  R_x = E/(I) − R内', formulaNote: '欧姆挡刻度不均匀，换挡后必须重新进行欧姆调零。',
       principle: '多用电表通过切换内部电路实现不同测量功能。测电阻时使用内部电源，待测电阻必须与外部电源断开。',
-      steps: ['检查指针是否指在零刻度', '选择测量功能与合适量程', '正确连接红黑表笔', '读数并记录测量结果'],
+      steps: ['检查指针是否指在零刻度', '选择测量功能与合适量程', '拖动红黑表笔，分别接触待测元件两端', '读数并记录测量结果'],
       controls: [
         { key: 'mode', label: '测量功能', type: 'select', value: 'resistance', options: [{ value: 'resistance', label: '电阻 Ω' }, { value: 'voltage', label: '直流电压 V' }, { value: 'current', label: '直流电流 mA' }] },
         { key: 'range', label: '量程', type: 'select', value: 'auto', options: [{ value: 'auto', label: '自动量程' }, { value: 'low', label: '低量程' }, { value: 'high', label: '高量程' }] },
-        { key: 'component', label: '待测元件', type: 'select', value: 'resistor', options: [{ value: 'resistor', label: '定值电阻 220 Ω' }, { value: 'battery', label: '干电池 1.5 V' }, { value: 'lamp', label: '小灯泡 0.3 A' }] }
+        { key: 'component', label: '待测元件', type: 'select', value: 'resistor', options: [
+          { value: 'resistor', label: '定值电阻 220 Ω' },
+          { value: 'carbon', label: '碳膜电阻 1 kΩ' },
+          { value: 'wirewound', label: '线绕电阻 47 Ω' },
+          { value: 'thermistor', label: '热敏电阻 560 Ω' },
+          { value: 'photoresistor', label: '光敏电阻 2.2 kΩ' },
+          { value: 'battery', label: '干电池 1.5 V' },
+          { value: 'lamp', label: '小灯泡 0.3 A' }
+        ] }
       ]
     },
     {
@@ -382,16 +400,47 @@
     }
   ];
 
+  /* 21 个实验的册次归属；仅用于“按教材”浏览筛选。 */
+  const bookByExp = {
+    'accelerated-motion': 'b1',
+    'hooke-law': 'b1',
+    'force-parallelogram': 'b1',
+    'newton-second': 'b1',
+    'projectile': 'b2',
+    'centripetal': 'b2',
+    'work-energy': 'b2',
+    'mechanical-energy': 'b2',
+    'momentum': 'x1',
+    'simple-pendulum': 'x1',
+    'resistivity': 'b3',
+    'bulb-curve': 'b3',
+    'emf-internal': 'b3',
+    'multimeter': 'b3',
+    'ampere-force': 'x2',
+    'induction': 'x2',
+    'transformer': 'x2',
+    'capacitor': 'b3',
+    'refraction': 'x1',
+    'double-slit': 'x1',
+    'oil-film': 'x3'
+  };
+  experiments.forEach(function (e) { e.book = bookByExp[e.id] || 'b1'; });
+
   function get(id) { return experiments.find(function (e) { return e.id === id; }); }
   function categoryOf(exp) { return categories[exp.category]; }
   function byCategory(cat) { return experiments.filter(function (e) { return e.category === cat; }); }
+  function byBook(book) { return experiments.filter(function (e) { return e.book === book; }); }
+  function bookOf(exp) { return books[exp && exp.book] || books.b1; }
 
   window.OL = window.OL || {};
   window.OL.categories = categories;
+  window.OL.books = books;
   window.OL.experiments = experiments;
   window.OL.icons = paths;
   window.OL.icon = icon;
   window.OL.getExperiment = get;
   window.OL.categoryOf = categoryOf;
   window.OL.byCategory = byCategory;
+  window.OL.byBook = byBook;
+  window.OL.bookOf = bookOf;
 })();

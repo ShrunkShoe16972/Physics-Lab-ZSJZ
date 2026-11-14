@@ -411,46 +411,133 @@
      14 · 练习使用多用电表
      ------------------------------------------------------------ */
   const COMPONENTS = {
-    resistor: { label: '定值电阻', R: 220, V: 0, I: 0.0136, unitR: 'Ω' },
-    battery: { label: '干电池', R: null, V: 1.5, I: null, unitR: 'V' },
-    lamp: { label: '小灯泡', R: 12, V: 3, I: 0.25, unitR: 'Ω' }
+    resistor: { label: '定值电阻', value: '220 Ω', R: 220, V: 0, I: 0.0136, color: '#ffd166', kind: 'resistor' },
+    carbon: { label: '碳膜电阻', value: '1 kΩ', R: 1000, V: 0, I: 0.00136, color: '#f6c177', kind: 'resistor' },
+    wirewound: { label: '线绕电阻', value: '47 Ω', R: 47, V: 0, I: 0.031, color: '#ff9f6b', kind: 'resistor' },
+    thermistor: { label: '热敏电阻', value: '560 Ω', R: 560, V: 0, I: 0.00227, color: '#ffb3c1', kind: 'resistor' },
+    photoresistor: { label: '光敏电阻', value: '2.2 kΩ', R: 2200, V: 0, I: 0.00065, color: '#ffd166', kind: 'resistor' },
+    battery: { label: '干电池', value: '1.5 V', R: null, V: 1.5, I: null, color: '#ff8a80', kind: 'battery' },
+    lamp: { label: '小灯泡', value: '0.3 A', R: 12, V: 3, I: 0.25, color: '#ffd166', kind: 'lamp' }
   };
+  const PROBE_TERMINALS = [{ x: 622, y: 222 }, { x: 812, y: 222 }];
+  const PROBE_HOME = { red: { x: 520, y: 340 }, black: { x: 850, y: 340 } };
+
+  function resetProbes(state) {
+    state._probe = {
+      red: { x: PROBE_HOME.red.x, y: PROBE_HOME.red.y, attached: null },
+      black: { x: PROBE_HOME.black.x, y: PROBE_HOME.black.y, attached: null }
+    };
+    state._connected = false;
+    state._drag = null;
+  }
+
+  function stagePoint(view, p) {
+    const f = view && view._frame;
+    if (!f || !f.s) return { x: p.x, y: p.y };
+    return { x: (p.x - f.ox) / f.s, y: (p.y - f.oy) / f.s };
+  }
+
+  function nearestTerminal(p) {
+    let best = -1, dist = 40;
+    PROBE_TERMINALS.forEach((t, i) => {
+      const d = Math.hypot(p.x - t.x, p.y - t.y);
+      if (d < dist) { dist = d; best = i; }
+    });
+    return best;
+  }
+
+  function refreshConnection(state) {
+    const r = state._probe && state._probe.red;
+    const b = state._probe && state._probe.black;
+    state._connected = !!(r && b && r.attached != null && b.attached != null && r.attached !== b.attached);
+  }
+
+  function probeDistance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
   OL.registerLab({
     id: 'multimeter',
     live: false,
     playable: false,
-    hint: '先选功能，再选量程 · 红表笔接“+”，黑表笔接“COM”',
+    pointer: true,
+    hint: '拖动红黑表笔，分别接触待测元件两端 · 红表笔接“+”，黑表笔接“COM”',
+    init(state, view) {
+      resetProbes(state);
+      view._frame = null;
+    },
+    onControl(key, state) {
+      if (key === 'component') resetProbes(state);
+    },
     _measure(state) {
       const comp = COMPONENTS[state.component] || COMPONENTS.resistor;
       let value = 0, unit = '', display = '0', overload = false, note = '';
+      const connected = !!state._connected;
+      unit = state.mode === 'resistance' ? 'Ω' : state.mode === 'voltage' ? 'V' : 'mA';
+      if (!connected) {
+        const r = state._probe && state._probe.red;
+        const b = state._probe && state._probe.black;
+        const same = !!(r && b && r.attached != null && r.attached === b.attached);
+        return { display: '---', unit, value: null, overload: false, note: same ? '两根表笔不能接在同一端' : '请拖动红黑表笔，接触待测元件两端', comp, connected: false };
+      }
       if (state.mode === 'resistance') {
-        unit = 'Ω';
-        if (state.component === 'battery') { display = 'OL'; note = '带电元件不能直接测电阻'; return { display, unit, overload: true, note, comp }; }
+        if (state.component === 'battery') { display = 'OL'; note = '带电元件不能直接测电阻'; return { display, unit, overload: true, note, comp, connected }; }
         value = comp.R;
         if (state.range === 'low' && value > 200) { display = '1 .'; overload = true; note = '超出低量程，请换高量程'; }
         else display = U.fmt(value, 1);
         note = note || '欧姆挡使用内部电源，测量前需调零';
       } else if (state.mode === 'voltage') {
-        unit = 'V';
         value = state.component === 'battery' ? comp.V : 0;
         if (state.range === 'low' && value > 2) { display = '1 .'; overload = true; note = '超出 2 V 量程'; }
         else display = U.fmt(value, 2);
-        note = note || '并联接入，红表笔接高电位';
+        note = note || (state.component === 'battery' ? '并联接入，红表笔接高电位' : '待测电阻两端没有电源，电压为 0');
       } else {
-        unit = 'mA';
         value = state.component === 'battery' ? 0 : comp.I * 1000;
-        if (state.component === 'battery') { display = '—'; note = '不能把电流表直接接在电源两端'; return { display, unit, overload: true, note, comp }; }
+        if (state.component === 'battery') { display = '—'; note = '不能把电流表直接接在电源两端'; return { display, unit, overload: true, note, comp, connected }; }
         if ((state.range === 'low' && value > 20) || (state.range === 'high' && value > 200)) { display = '1 .'; overload = true; note = '超出量程，请换挡'; }
         else display = U.fmt(value, 1);
         note = note || '串联接入，电流从红表笔流入';
       }
-      return { display, unit, value, overload, note, comp };
+      return { display, unit, value, overload, note, comp, connected };
+    },
+    onPointerDown(p, state, view) {
+      if (!state._probe) resetProbes(state);
+      const q = stagePoint(view, p);
+      const probes = state._probe;
+      const candidates = [
+        { key: 'red', d: probeDistance(q, probes.red) },
+        { key: 'black', d: probeDistance(q, probes.black) }
+      ].sort((a, b) => a.d - b.d);
+      if (candidates[0].d > 38) return false;
+      state._drag = candidates[0].key;
+      probes[state._drag].attached = null;
+      refreshConnection(state);
+      return true;
+    },
+    onPointerMove(p, state, view) {
+      if (!state._drag || !state._probe) return;
+      const q = stagePoint(view, p);
+      const pr = state._probe[state._drag];
+      pr.x = U.clamp(q.x, 12, 888);
+      pr.y = U.clamp(q.y, 12, 448);
+      const t = nearestTerminal(q);
+      if (t >= 0) {
+        pr.x = PROBE_TERMINALS[t].x; pr.y = PROBE_TERMINALS[t].y; pr.attached = t;
+      } else {
+        pr.attached = null;
+      }
+      refreshConnection(state);
+    },
+    onPointerUp(p, state, view) {
+      if (!state._drag) return;
+      this.onPointerMove(p, state, view);
+      state._drag = null;
+      refreshConnection(state);
     },
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 34 });
       const f = K.frame(ctx, w, h);
+      view._frame = { s: f.s, ox: f.ox, oy: f.oy, W: f.W, H: f.H };
       const m = this._measure(state);
+      const comp = m.comp;
       // body
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
@@ -466,6 +553,7 @@
       C.label(ctx, state.mode === 'resistance' ? 'Ω' : state.mode === 'voltage' ? 'DC V' : 'DC mA', 126, 98, { size: 9, color: 'rgba(36,48,28,.65)', mono: true });
       C.label(ctx, state.range === 'auto' ? 'AUTO' : state.range === 'low' ? 'LOW' : 'HIGH', 126, 114, { size: 8, color: 'rgba(36,48,28,.5)', mono: true });
       if (m.overload) C.label(ctx, 'OVER', 308, 98, { size: 8, align: 'right', color: '#a33a2a', mono: true });
+      if (!m.connected) C.label(ctx, 'LEADS', 308, 98, { size: 8, align: 'right', color: 'rgba(36,48,28,.5)', mono: true });
       // dial
       const cx = 216, cy = 248, r = 52;
       C.dot(ctx, cx, cy, r + 5, 'rgba(15,21,32,.9)');
@@ -488,34 +576,60 @@
         C.dot(ctx, x, 370, 6, i === 0 ? '#e05a4f' : '#252b36');
         C.label(ctx, t, x, 390, { size: 7, align: 'center', color: 'rgba(230,240,255,.38)' });
       });
-      // probes
-      const jack = [132, 370], compX = 674, compY = 250;
+
+      if (!state._probe) resetProbes(state);
+      const probes = state._probe;
+      // wires behind the component
       ctx.save();
-      ctx.strokeStyle = '#e05a4f'; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(jack[0], jack[1]); ctx.bezierCurveTo(300, 430, 560, 390, compX - 28, compY - 12); ctx.stroke();
-      ctx.strokeStyle = '#2a2e36'; ctx.lineWidth = 2.2;
-      ctx.beginPath(); ctx.moveTo(jack[0] + 44, jack[1]); ctx.bezierCurveTo(340, 450, 600, 410, compX + 26, compY + 12); ctx.stroke();
+      const drawLead = (jack, probe, color) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(jack.x, jack.y);
+        ctx.bezierCurveTo(jack.x + 130, jack.y + 38, probe.x - 90, probe.y + 62, probe.x, probe.y);
+        ctx.stroke();
+      };
+      drawLead({ x: 132, y: 370 }, probes.red, '#e05a4f');
+      drawLead({ x: 176, y: 370 }, probes.black, '#596273');
       ctx.restore();
 
-      // component
+      // component panel
       C.label(ctx, '待测元件', 630, 104, { size: 8.5, color: 'rgba(230,240,255,.4)' });
       K.panel(ctx, 604, 128, 226, 184, { fill: 'rgba(9,15,26,.58)' });
-      if (state.component === 'resistor') {
-        zigzag(ctx, 642, 222, 790, 'rgba(255,179,64,.8)');
+      PROBE_TERMINALS.forEach((t, i) => {
+        const attached = probes.red.attached === i || probes.black.attached === i;
+        C.dot(ctx, t.x, t.y, attached ? 8 : 6, attached ? comp.color : 'rgba(230,240,255,.18)');
+        C.dot(ctx, t.x, t.y, 2.5, attached ? '#0b0f18' : 'rgba(230,240,255,.4)');
+      });
+      if (comp.kind === 'resistor') {
+        zigzag(ctx, 642, 222, 790, comp.color);
         C.line(ctx, 620, 222, 642, 222, 'rgba(220,235,255,.45)', 1.2);
         C.line(ctx, 790, 222, 812, 222, 'rgba(220,235,255,.45)', 1.2);
-        C.label(ctx, '220 Ω', 716, 248, { size: 12, align: 'center', color: '#ffd166', mono: true });
-      } else if (state.component === 'battery') {
+        C.label(ctx, comp.value, 716, 252, { size: 13, align: 'center', color: '#ffd166', mono: true });
+      } else if (comp.kind === 'battery') {
         batterySymbol(ctx, 716, 222, true, 1.4);
         C.label(ctx, '1.5 V 干电池', 716, 258, { size: 10, align: 'center', color: '#ffd166', mono: true });
       } else {
         K.lamp(ctx, 716, 220, 18, 0.2);
         C.label(ctx, '小灯泡', 716, 256, { size: 10, align: 'center', color: '#ffd166' });
       }
-      C.label(ctx, m.note, 716, 286, { size: 7.5, align: 'center', color: m.overload ? '#ff8a80' : 'rgba(230,240,255,.32)' });
-      C.label(ctx, '红表笔 +', 620, 342, { size: 7.5, color: '#ff8a80' });
-      C.label(ctx, '黑表笔 COM', 734, 342, { size: 7.5, color: 'rgba(230,240,255,.4)' });
-      C.label(ctx, m.comp.label, 716, 372, { size: 9, align: 'center', color: 'rgba(230,240,255,.5)' });
+      C.label(ctx, m.note, 716, 286, { size: 7.5, align: 'center', color: m.overload ? '#ff8a80' : (m.connected ? 'rgba(120,220,160,.7)' : 'rgba(255,210,120,.7)') });
+      C.label(ctx, comp.label, 716, 338, { size: 9, align: 'center', color: 'rgba(230,240,255,.55)' });
+      C.label(ctx, m.connected ? '✓ 已接通，读数稳定' : '拖动表笔到元件两端', 716, 354, { size: 8, align: 'center', color: m.connected ? 'rgba(120,220,160,.8)' : 'rgba(230,240,255,.4)' });
+      // probe tips
+      ctx.save();
+      ctx.shadowBlur = 12;
+      [['red', '#e05a4f'], ['black', '#596273']].forEach(([key, color]) => {
+        const pr = probes[key];
+        ctx.shadowColor = color;
+        C.dot(ctx, pr.x, pr.y, key === 'black' ? 9 : 7, key === 'black' ? 'rgba(230,240,255,.22)' : 'rgba(224,90,79,.22)');
+        C.dot(ctx, pr.x, pr.y, 7, color);
+        C.dot(ctx, pr.x, pr.y, 3, 'rgba(255,255,255,.7)');
+        if (pr.attached != null) {
+          C.dot(ctx, pr.x, pr.y, 13, 'rgba(255,255,255,.06)');
+        }
+      });
+      ctx.restore();
+      if (probes.red.attached == null) C.label(ctx, '红表笔 +', probes.red.x, probes.red.y + 20, { size: 7.5, align: 'center', color: '#ff8a80' });
+      if (probes.black.attached == null) C.label(ctx, '黑表笔 COM', probes.black.x, probes.black.y + 20, { size: 7.5, align: 'center', color: 'rgba(230,240,255,.4)' });
       f.restore();
     },
     readouts(state) {
@@ -524,18 +638,19 @@
         K.readout('当前读数', m.display + ' ' + m.unit, ''),
         K.readout('测量功能', state.mode === 'resistance' ? '电阻' : state.mode === 'voltage' ? '直流电压' : '直流电流', ''),
         K.readout('量程', state.range === 'auto' ? '自动' : state.range === 'low' ? '低' : '高', ''),
-        K.readout('表笔接法', state.mode === 'current' ? '串联' : state.mode === 'voltage' ? '并联' : '断电源', '')
+        K.readout('接线状态', m.connected ? '已接通' : '待接线', '')
       ];
     },
     sample(state) {
       const m = this._measure(state);
-      return { mode: state.mode, component: m.comp.label, reading: m.overload ? 'OL' : m.display, unit: m.unit, range: state.range, trueValue: m.value };
+      return { mode: state.mode, component: m.comp.label, reading: m.overload ? 'OL' : m.display, unit: m.unit, range: state.range, trueValue: m.value, connected: m.connected ? '是' : '否' };
     },
     columns: [
       { key: 'mode', label: '功能', unit: '', decimals: 0 },
       { key: 'component', label: '元件', unit: '', decimals: 0 },
       { key: 'reading', label: '读数', unit: '', decimals: 0 },
-      { key: 'unit', label: '单位', unit: '', decimals: 0 }
+      { key: 'unit', label: '单位', unit: '', decimals: 0 },
+      { key: 'connected', label: '接线', unit: '', decimals: 0 }
     ],
     plot(state, view) {
       // Ohm scale is nonlinear: show meter current vs external resistance.
@@ -555,6 +670,7 @@
     },
     conclusion(state) {
       const m = this._measure(state);
+      if (!m.connected) return '<b>接线提示：</b>拖动红色和黑色表笔，让两个笔尖分别接触待测元件的两端；只有两端都接通后，表盘才会显示读数。';
       return '<b>结论：</b>多用电表通过切换内部电路实现不同测量。当前 ' + m.comp.label + ' 的读数为 <b>' + m.display + ' ' + m.unit + '</b>。' + (m.overload ? ' ⚠ ' + m.note + '。' : ' 注意：欧姆挡刻度不均匀，换挡后要重新调零。');
     }
   });

@@ -74,7 +74,7 @@
 
   const storeKey = 'prism-physics-lab-v1';
   const defaultState = {
-    theme: 'light', completed: [], steps: {}, last: 'accelerated-motion',
+    theme: 'light', uiStyle: 'win', onboarded: false, completed: [], steps: {}, last: 'accelerated-motion',
     custom: [], visits: 0, name: '物理探索者', fontScale: 1
   };
   let memoryState = null;
@@ -329,11 +329,13 @@
   function iconCopy() { return '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>'; }
   function iconTrash() { return '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg>'; }
   function iconUpload() { return '<svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 20h14"/></svg>'; }
+  function iconSun() { return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'; }
+  function iconMoon() { return '<svg viewBox="0 0 24 24"><path d="M20.2 14.4A8.5 8.5 0 0 1 9.6 3.8 8.5 8.5 0 1 0 20.2 14.4Z"/></svg>'; }
 
   OL.utils = { $, $$, clamp, lerp, smoothstep, uid, esc, deg, rad, fmt, sci, sup, throttle, download, toCSV, load, save, reset, complete, isDone, hexA };
   OL.ui = OL.ui || { fontScale: 1, canvasLabelScale: 1.12, chartFontScale: 1 };
   OL.store = { load, save, reset, complete, isDone, key: storeKey };
   OL.canvas = { prepare, roundRect, fillRound, label, line, arrow, dot, ball, glowCircle, hexA, grid, floorLine, spring, bars, axis, dashedPath };
   OL.palette = palette;
-  OL.iconsUI = { arrow: iconArrow, back: iconBack, check: iconCheck, play: iconPlay, pause: iconPause, reset: iconReset, expand: iconExpand, download: iconDownload, chart: iconChart, info: iconInfo, spark: iconSpark, table: iconTable, copy: iconCopy, trash: iconTrash, upload: iconUpload };
+  OL.iconsUI = { arrow: iconArrow, back: iconBack, check: iconCheck, play: iconPlay, pause: iconPause, reset: iconReset, expand: iconExpand, download: iconDownload, chart: iconChart, info: iconInfo, spark: iconSpark, table: iconTable, copy: iconCopy, trash: iconTrash, upload: iconUpload, sun: iconSun, moon: iconMoon };
 })();

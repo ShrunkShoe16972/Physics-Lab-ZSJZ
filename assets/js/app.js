@@ -20,8 +20,9 @@
   };
 
   const state = app.state = {
-    route: 'home', filter: 'all', lab: null, currentLab: null,
+    route: 'home', filter: 'all', book: 'all', lab: null, currentLab: null,
     theme: U.load().theme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    uiStyle: U.load().uiStyle === 'mac' ? 'mac' : 'win',
     fontScale: Number(U.load().fontScale) || 1,
     paletteOpen: false, paletteIndex: 0, heroStop: null, focus: false
   };
@@ -44,30 +45,61 @@
      Theme & chrome
      ------------------------------------------------------------ */
   function applyTheme(theme, persist) {
-    state.theme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
+    state.theme = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', state.theme);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#07080b' : '#f3f4f6');
-    if (persist !== false) U.save({ theme });
+    if (meta) meta.setAttribute('content', state.theme === 'dark' ? '#07080b' : '#f3f4f6');
+    if (persist !== false) U.save({ theme: state.theme });
+    syncAppearanceControls();
     if (state.currentLab && state.currentLab.chart) state.currentLab.chart.draw();
   }
 
+  function applyUiStyle(style, persist) {
+    state.uiStyle = style === 'mac' ? 'mac' : 'win';
+    document.documentElement.setAttribute('data-style', state.uiStyle);
+    if (persist !== false) U.save({ uiStyle: state.uiStyle });
+    syncAppearanceControls();
+    if (state.currentLab) {
+      state.currentLab.view.dirty = true;
+      if (state.currentLab.chart) setTimeout(() => state.currentLab && state.currentLab.chart.draw(), 30);
+    }
+  }
+
   function applyFontScale(value, persist) {
-    const scale = Math.min(1.3, Math.max(1, Number(value) || 1));
+    let scale = Number(value) || 1;
+    if (scale > 10) scale = scale / 100;
+    scale = Math.min(1.5, Math.max(1, scale));
     state.fontScale = scale;
     document.documentElement.style.setProperty('--fs', scale);
     document.documentElement.setAttribute('data-font-scale', String(scale));
     OL.ui.fontScale = scale;
     OL.ui.canvasLabelScale = 1 + (scale - 1) * 1.05;
     OL.ui.chartFontScale = 1 + (scale - 1) * 1.15;
-    const fv = $('#fontValue');
-    if (fv) fv.textContent = Math.round(scale * 100) + '%';
-    $$('.font-options button').forEach((b) => b.classList.toggle('active', Number(b.dataset.font) === scale));
+    syncAppearanceControls();
     if (persist !== false) U.save({ fontScale: scale });
     if (state.currentLab) {
       state.currentLab.view.dirty = true;
       if (state.currentLab.chart) setTimeout(() => state.currentLab && state.currentLab.chart.draw(), 30);
     }
+  }
+
+  function syncAppearanceControls() {
+    const pct = Math.round(state.fontScale * 100);
+    $$('[data-font-value]').forEach((el) => { el.textContent = pct + '%'; });
+    $$('[data-font-slider]').forEach((el) => {
+      if (Number(el.value) !== pct) el.value = pct;
+      el.style.setProperty('--fill', ((pct - 100) / 50 * 100) + '%');
+    });
+    $$('[data-set-theme]').forEach((el) => {
+      const active = el.dataset.setTheme === state.theme;
+      el.classList.toggle('active', active);
+      el.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    $$('[data-set-style]').forEach((el) => {
+      const active = el.dataset.setStyle === state.uiStyle;
+      el.classList.toggle('active', active);
+      el.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
   }
 
   function setFontPanel(open) {
@@ -142,10 +174,54 @@
       '<li>' + ui('chart') + '<span><b>采集数据</b>：点击按钮记录一组数据，图表与数据表会自动累积。</span></li>',
       '<li>' + ui('play') + '<span><b>播放 / 暂停</b>：按 <kbd class="kbd-hint">空格</kbd> 控制运动类实验。</span></li>',
       '<li>' + ui('spark') + '<span><b>创意工坊</b>：用公式和变量设计自己的实验，并导出为 JSON 或插件。</span></li>',
-      '<li><span style="font-weight:700;font-size:13px">Aa</span><span><b>字体大小</b>：右上角 Aa 可放大界面文字、画布标注与图表。</span></li>',
+      '<li><span style="font-weight:700;font-size:13px">⚙</span><span><b>设置</b>：右上角齿轮可调整字体大小（100%–150%）、明暗外观与 Windows / macOS 主题。</span></li>',
       '</div>',
       '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:10px;color:var(--text-3)">快捷键：⌘/Ctrl + K 搜索 · 空格 播放/暂停 · R 重置 · Esc 关闭</div>'
     ].join(''));
+  }
+
+  function appearanceFields() {
+    return '<div class="settings-block">' +
+      '<div class="settings-label"><span><b>字体大小</b><em>同时影响界面、实验画布和图表标注</em></span><strong data-font-value>' + Math.round(state.fontScale * 100) + '%</strong></div>' +
+      '<input class="settings-range" type="range" min="100" max="150" step="1" value="' + Math.round(state.fontScale * 100) + '" data-font-slider aria-label="字体大小">' +
+      '<div class="range-scale"><span>100%</span><span>125%</span><span>150%</span></div>' +
+      '<div class="font-preview">把每一个公式，变成看得见的实验。<span>Prism · 棱镜物理实验室</span></div>' +
+      '</div>' +
+      '<div class="settings-block">' +
+      '<div class="settings-label"><span><b>明暗外观</b><em>白天与夜晚都可以舒适阅读</em></span></div>' +
+      '<div class="theme-switch">' +
+      '<button data-set-theme="light">' + ui('sun') + '<span>浅色</span></button>' +
+      '<button data-set-theme="dark">' + ui('moon') + '<span>深色</span></button>' +
+      '</div></div>' +
+      '<div class="settings-block">' +
+      '<div class="settings-label"><span><b>界面主题</b><em>选择你熟悉的桌面风格</em></span></div>' +
+      '<div class="style-grid">' +
+      '<button class="style-choice" data-set-style="win"><span class="style-shot win-shot"><i></i><i></i><i></i></span><span class="style-copy"><b>Windows 风格</b><em>毛玻璃、柔和渐变与高密度信息</em></span></button>' +
+      '<button class="style-choice" data-set-style="mac"><span class="style-shot mac-shot"><i></i><i></i><i></i></span><span class="style-copy"><b>macOS 简约</b><em>纯色面板、轻边框与更安静的留白</em></span></button>' +
+      '</div></div>';
+  }
+
+  function openSettings() {
+    openModal('设置', appearanceFields(), {
+      sub: '外观、字号与主题会保存在这台设备上',
+      footer: '<button class="btn ghost small" data-action="reopen-welcome">重新查看欢迎页</button><button class="btn" data-action="close-modal">完成</button>'
+    });
+    syncAppearanceControls();
+  }
+
+  function openWelcome() {
+    openModal('欢迎来到 Prism', '<p class="welcome-lead">先选择你的阅读方式。以后随时可以在右上角 <b>设置</b> 中修改。</p>' + appearanceFields(), {
+      sub: '21 个高中物理实验，准备好了',
+      footer: '<button class="btn" data-action="finish-welcome">开始探索 ' + ui('arrow') + '</button>'
+    });
+    setTimeout(() => { const r = $('[data-font-slider]'); if (r) r.focus({ preventScroll: true }); }, 60);
+    syncAppearanceControls();
+  }
+
+  function finishWelcome() {
+    U.save({ onboarded: true, fontScale: state.fontScale, theme: state.theme, uiStyle: state.uiStyle });
+    closeModal();
+    toast('已保存你的阅读偏好');
   }
 
   function openPalette() {
@@ -270,6 +346,7 @@
      ------------------------------------------------------------ */
   function expCard(e) {
     const cat = catOf(e);
+    const book = OL.bookOf ? OL.bookOf(e) : null;
     const done = U.isDone(e.id);
     return '<button class="exp-card" data-lab="' + e.id + '" style="--accent:' + (e.accent || cat.color) + '">' +
       '<span class="exp-art"><span class="art-label">' + U.esc(cat.en) + '</span>' + OL.icon(e.icon) +
@@ -277,6 +354,7 @@
       (done ? '<span class="done-mark">' + ui('check') + '</span>' : '') + '</span>' +
       '<span class="exp-body"><h3>' + U.esc(e.title) + '</h3><p>' + U.esc(e.short) + '</p>' +
       '<span class="exp-foot"><span class="tag">' + U.esc(e.difficulty || '基础') + '</span><span class="dotsep"></span><span class="tag">' + U.esc(e.time || '8 分钟') + '</span>' +
+      (book ? '<span class="tag book-tag">' + U.esc(book.short) + '</span>' : '') +
       '<span class="go">开始 ' + ui('arrow') + '</span></span></span></button>';
   }
 
@@ -285,9 +363,22 @@
     return items.map(([k, label]) => '<button class="filter-chip' + (state.filter === k ? ' active' : '') + '" data-filter="' + k + '">' + label + '</button>').join('');
   }
 
+  function bookChips() {
+    const items = [['all', '全部教材']].concat(Object.keys(OL.books).map((k) => [k, OL.books[k].short]));
+    return items.map(([k, label]) => {
+      const n = k === 'all' ? OL.experiments.length : OL.byBook(k).length;
+      return '<button class="filter-chip book-chip' + (state.book === k ? ' active' : '') + '" data-book="' + k + '">' + U.esc(label) + '<span>' + n + '</span></button>';
+    }).join('');
+  }
+
   function filteredExperiments() {
-    if (state.filter === 'all') return OL.experiments.slice();
-    return OL.byCategory(state.filter);
+    let list = state.filter === 'all' ? OL.experiments.slice() : OL.byCategory(state.filter);
+    if (state.book !== 'all') list = list.filter((e) => e.book === state.book);
+    return list;
+  }
+
+  function syncBookChips() {
+    $$('[data-book]').forEach((b) => b.classList.toggle('active', b.dataset.book === state.book));
   }
 
   function renderHome() {
@@ -315,6 +406,7 @@
       '</div></div>' +
       '<div class="section-head"><div><h2>实验库</h2><p>选择一个实验，开始你的探究</p></div><button class="section-link" data-route="library">查看全部 ' + ui('arrow') + '</button></div>' +
       '<div class="filter-row" id="homeFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
+      '<div class="filter-row book-filter-row" id="homeBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
       '<section class="workshop-promo card"><div class="wp-ico">' + ui('spark') + '</div><div class="wp-copy"><span class="eyebrow">开放实验工坊</span><h3>不只是使用者，也成为实验设计者。</h3><p>用变量、公式与可视化画布搭建自己的物理实验，导入导出 JSON，或通过插件接口扩展 Prism。</p></div><button class="btn ghost" data-route="workshop">进入工坊 ' + ui('arrow') + '</button></section>' +
       '</div>';
@@ -334,6 +426,7 @@
         return '<button class="cat-card" data-cat="' + k + '" style="--cat:' + c.color + '"><span class="cat-ico">' + OL.icon(c.icon) + '</span><span><strong>' + c.name + '</strong><span>' + c.desc + '</span></span><span class="cat-n">' + pad(n) + '</span></button>';
       }).join('') + '</div>' +
       '<div class="filter-row" id="libFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
+      '<div class="filter-row book-filter-row" id="libBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
       '</div>';
   }
@@ -341,11 +434,21 @@
   function applyFilter(cat) {
     state.filter = cat;
     $$('[data-filter]').forEach((b) => b.classList.toggle('active', b.dataset.filter === cat));
+    syncBookChips();
     const grid = $('#expGrid');
     if (grid) grid.innerHTML = filteredExperiments().map(expCard).join('');
     const count = $('#filterCount');
     if (count) count.textContent = filteredExperiments().length + ' 个实验';
     if (state.route === 'library') setActiveNav('library', cat !== 'all' ? cat : null);
+  }
+
+  function applyBookFilter(book) {
+    state.book = book || 'all';
+    syncBookChips();
+    const grid = $('#expGrid');
+    if (grid) grid.innerHTML = filteredExperiments().map(expCard).join('');
+    const count = $('#filterCount');
+    if (count) count.textContent = filteredExperiments().length + ' 个实验';
   }
 
   /* ------------------------------------------------------------
@@ -528,6 +631,7 @@
     view.view = view;
     view.state = st;
     view.el = current;
+    if (lab.pointer) current.canvas.classList.add('canvas-interactive');
 
     if (lab.init) lab.init.call(lab, st, view);
     if (lab.playable === false) view.playing = false;
@@ -591,6 +695,56 @@
       ro.observe(wrap);
       cur.chart.ro2 = ro;
     }
+    bindCanvasPointers(cur);
+  }
+
+  function canvasPoint(cur, e) {
+    const r = cur.canvas.getBoundingClientRect();
+    const w = cur.canvas.clientWidth || r.width || 1;
+    const h = cur.canvas.clientHeight || r.height || 1;
+    return { x: (e.clientX - r.left) / r.width * w, y: (e.clientY - r.top) / r.height * h };
+  }
+
+  function bindCanvasPointers(cur) {
+    if (!cur.canvas) return;
+    const canvas = cur.canvas;
+    const hasPointer = cur.lab.onPointerDown || cur.lab.onPointerMove || cur.lab.onPointerUp;
+    if (!hasPointer) return;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.button != null && e.button !== 0) return;
+      const p = canvasPoint(cur, e);
+      const handled = cur.lab.onPointerDown && cur.lab.onPointerDown.call(cur.lab, p, cur.state, cur.view, e);
+      if (!handled) return;
+      cur.pointerId = e.pointerId;
+      cur.dragging = true;
+      canvas.classList.add('is-dragging');
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      cur.view.dirty = true;
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!cur.dragging || e.pointerId !== cur.pointerId) return;
+      const p = canvasPoint(cur, e);
+      if (cur.lab.onPointerMove) cur.lab.onPointerMove.call(cur.lab, p, cur.state, cur.view, e);
+      cur.view.dirty = true;
+      e.preventDefault();
+    });
+    const end = (e) => {
+      if (!cur.dragging || (e.pointerId != null && e.pointerId !== cur.pointerId)) return;
+      const p = canvasPoint(cur, e);
+      if (cur.lab.onPointerUp) cur.lab.onPointerUp.call(cur.lab, p, cur.state, cur.view, e);
+      cur.dragging = false;
+      canvas.classList.remove('is-dragging');
+      try { canvas.releasePointerCapture(cur.pointerId); } catch (err) {}
+      cur.pointerId = null;
+      cur.view.dirty = true;
+      updateReadouts();
+      schedulePlot();
+      scheduleConclusion();
+      e.preventDefault();
+    };
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
   }
 
   function schedulePlot() {
@@ -868,6 +1022,7 @@
     const cat = e.target.closest('[data-cat]');
     if (cat) {
       state.filter = cat.dataset.cat;
+      state.book = 'all';
       closeMobile();
       if (state.route === 'library') { applyFilter(state.filter); }
       else navigate('library');
@@ -875,6 +1030,12 @@
     }
     const filter = e.target.closest('[data-filter]');
     if (filter) { applyFilter(filter.dataset.filter); return; }
+    const book = e.target.closest('[data-book]');
+    if (book) { applyBookFilter(book.dataset.book); return; }
+    const themeChoice = e.target.closest('[data-set-theme]');
+    if (themeChoice) { applyTheme(themeChoice.dataset.setTheme, true); return; }
+    const styleChoice = e.target.closest('[data-set-style]');
+    if (styleChoice) { applyUiStyle(styleChoice.dataset.setStyle, true); return; }
     const step = e.target.closest('[data-step]');
     if (step && state.currentLab) {
       const i = Number(step.dataset.step);
@@ -913,6 +1074,9 @@
       const action = act.dataset.action;
       if (action === 'continue') { const last = resolveExp(U.load().last) || OL.experiments[0]; navigate('lab/' + last.id); }
       else if (action === 'open-workshop') navigate('workshop');
+      else if (action === 'open-settings') openSettings();
+      else if (action === 'finish-welcome') finishWelcome();
+      else if (action === 'reopen-welcome') openWelcome();
       else if (action === 'close-modal') closeModal();
       else if (action === 'close-palette') closePalette();
       else if (action === 'toggle-play' && state.currentLab) {
@@ -986,24 +1150,14 @@
     if (viewEl.scrollTop !== before) e.preventDefault();
   }, { passive: false });
 
-  $('#fontBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    const pop = $('#fontPop');
-    setFontPanel(pop ? pop.hidden : false);
-  });
-  $$('.font-options button').forEach((b) => {
-    b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyFontScale(Number(b.dataset.font), true);
-      setFontPanel(false);
-      toast('字体大小已调整为 ' + Math.round(Number(b.dataset.font) * 100) + '%');
-    });
-  });
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.font-wrap')) setFontPanel(false);
+  document.addEventListener('input', (e) => {
+    const slider = e.target.closest('[data-font-slider]');
+    if (!slider) return;
+    applyFontScale(Number(slider.value), true);
   });
 
-  $('#themeBtn').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark'));
+  $('#settingsBtn').addEventListener('click', openSettings);
+  $('#themeBtn').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark', true));
   $('#searchBtn').addEventListener('click', openPalette);
   $('#helpBtn').addEventListener('click', openHelp);
   const focusBtn = $('#focusBtn');
@@ -1031,9 +1185,11 @@
   /* ------------------------------------------------------------
      Boot
      ------------------------------------------------------------ */
+  applyUiStyle(state.uiStyle, false);
   applyTheme(state.theme, false);
   applyFontScale(state.fontScale, false);
   syncProgress();
   if (!location.hash) renderRoute(false);
   else renderRoute(false);
+  if (!U.load().onboarded) setTimeout(() => { if (!U.load().onboarded) openWelcome(); }, 520);
 })();
