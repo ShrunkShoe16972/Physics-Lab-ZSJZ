@@ -32,7 +32,7 @@ namespace PrismLab
             Log("Starting Prism portable");
 
             bool createdNew;
-            appMutex = new Mutex(true, @"Local\PrismLab_Portable_0_1", out createdNew);
+            appMutex = new Mutex(true, @"Local\PrismLab_Portable", out createdNew);
             if (!createdNew)
             {
                 int existingPort = ReadPort();
@@ -157,7 +157,7 @@ namespace PrismLab
             }
             if (tray.Icon == null) tray.Icon = SystemIcons.Application;
 
-            tray.Text = "Prism 物理实验室 v0.1";
+            tray.Text = "Prism 物理实验室 v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
             tray.Visible = true;
 
             ContextMenuStrip menu = new ContextMenuStrip();
