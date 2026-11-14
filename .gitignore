@@ -6,11 +6,10 @@ Thumbs.db
 # Browser or tooling artifacts
 .cache/
 node_modules/
-dist/
 
 # Portable build cache and runtime data
 packaging/.build/
 PrismLabData/
 launcher.log
 
-# Keep the user-facing workspace, source, docs and previews tracked.
+# Keep the user-facing workspace, source, docs, previews and release binaries tracked.
