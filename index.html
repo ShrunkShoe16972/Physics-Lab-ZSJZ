@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
-  <meta name="description" content="Prism 棱镜物理实验室 —— 22 个高中物理经典实验，实时图像、交互模拟与开放实验工坊。">
-  <title>Prism · 棱镜物理实验室</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%230a84ff'/%3E%3Cstop offset='1' stop-color='%235e5ce6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M18 44 32 17l14 27H18Z' fill='none' stroke='white' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpath d='M32 17v27' stroke='white' stroke-width='2.2' opacity='.65'/%3E%3C/svg%3E">
+  <meta name="description" content="中山市中山纪念中学物理实验室 —— 22 个高中物理经典实验，实时图像、交互模拟与开放实验工坊。">
+  <title>中山市中山纪念中学物理实验室</title>
+  <link rel="icon" href="assets/img/school-badge.png">
   <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
+  <div class="app-background" id="appBackground" aria-hidden="true"></div>
   <div class="ambient" aria-hidden="true">
     <span class="ambient-orb orb-a"></span>
     <span class="ambient-orb orb-b"></span>
@@ -22,49 +23,51 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand" data-route="home" role="button" tabindex="0" aria-label="返回首页">
         <span class="brand-mark">
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <path d="M11 35.5 24 10l13 25.5H11Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M24 10v25.5M17 22.8h14" stroke="currentColor" stroke-width="1.5" opacity=".48"/>
-          </svg>
+          <img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽">
         </span>
-        <span class="brand-type"><strong>Prism</strong><em>棱镜物理实验室</em></span>
+        <span class="brand-type"><strong>中山市中山纪念中学</strong><em>物理实验室</em></span>
       </div>
 
       <div class="sidebar-scroll">
-        <p class="nav-label">工作台</p>
         <nav class="nav" aria-label="主导航">
           <button class="nav-item" data-route="home">
             <span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M4 11.2 12 4l8 7.2V20a1 1 0 0 1-1 1h-4.8v-5.6H9.8V21H5a1 1 0 0 1-1-1v-8.8Z"/></svg></span>
             <span>概览</span>
           </button>
-          <button class="nav-item" data-route="library">
-            <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></span>
-            <span>实验库</span><span class="nav-badge">22</span>
-          </button>
+          <div class="nav-library-group" id="navLibraryGroup">
+            <button class="nav-item nav-library" data-route="library" aria-expanded="false" aria-controls="catSub">
+              <span class="nav-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></span>
+              <span>实验库</span><span class="nav-badge">22</span><span class="nav-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg></span>
+            </button>
+            <div class="nav-sub" id="catSub" aria-hidden="true">
+              <div class="nav-sub-inner">
+                <button class="nav-item nav-cat" data-cat="mechanics">
+                  <span class="cat-swatch" style="--cat:#0a84ff"></span><span>力学</span><span class="nav-count">10</span>
+                </button>
+                <button class="nav-item nav-cat" data-cat="electricity">
+                  <span class="cat-swatch" style="--cat:#ff9f0a"></span><span>电磁学</span><span class="nav-count">8</span>
+                </button>
+                <button class="nav-item nav-cat" data-cat="optics">
+                  <span class="cat-swatch" style="--cat:#bf5af2"></span><span>光学</span><span class="nav-count">2</span>
+                </button>
+                <button class="nav-item nav-cat" data-cat="molecular">
+                  <span class="cat-swatch" style="--cat:#30d158"></span><span>热学与分子</span><span class="nav-count">2</span>
+                </button>
+              </div>
+            </div>
+          </div>
           <button class="nav-item" data-route="workshop">
             <span class="nav-ico"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a3.6 3.6 0 0 0 4.8 4.8l-8 8a2.7 2.7 0 0 1-3.8 0l-1-1a2.7 2.7 0 0 1 0-3.8l8-8Z"/><path d="m5 19 2.4-2.4M16.4 4.6l3 3"/></svg></span>
             <span>创意工坊</span><span class="nav-dot"></span>
           </button>
         </nav>
-
-        <p class="nav-label">学科领域</p>
-        <nav class="nav nav-categories" aria-label="学科分类">
-          <button class="nav-item nav-cat" data-cat="mechanics">
-            <span class="cat-swatch" style="--cat:#0a84ff"></span><span>力学</span><span class="nav-count">10</span>
-          </button>
-          <button class="nav-item nav-cat" data-cat="electricity">
-            <span class="cat-swatch" style="--cat:#ff9f0a"></span><span>电磁学</span><span class="nav-count">8</span>
-          </button>
-          <button class="nav-item nav-cat" data-cat="optics">
-            <span class="cat-swatch" style="--cat:#bf5af2"></span><span>光学</span><span class="nav-count">2</span>
-          </button>
-          <button class="nav-item nav-cat" data-cat="molecular">
-            <span class="cat-swatch" style="--cat:#30d158"></span><span>热学与分子</span><span class="nav-count">2</span>
-          </button>
-        </nav>
       </div>
 
       <div class="sidebar-foot">
+        <div class="sidebar-tools">
+          <button class="sidebar-tool" id="aboutBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg><span>关于</span></button>
+          <button class="sidebar-tool" id="settingsBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.36a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.64a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.23.6.8 1 1.45 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg><span>设置</span></button>
+        </div>
         <div class="progress-card" data-route="library" role="button" tabindex="0">
           <div class="progress-head"><span>学习进度</span><strong id="sideProgressText">0%</strong></div>
           <div class="progress-track"><i id="sideProgressBar" style="width:0%"></i></div>
@@ -81,18 +84,13 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="icon-btn menu-btn" id="menuBtn" aria-label="打开菜单"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-          <div class="crumb" id="crumb"><span>工作台</span><i>/</i><strong>概览</strong></div>
+          <div class="crumb" id="crumb"><strong>概览</strong></div>
         </div>
         <div class="topbar-actions">
           <button class="search-trigger" id="searchBtn">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
             <span>搜索实验、概念或公式</span><kbd>⌘ K</kbd>
           </button>
-          <div class="font-wrap">
-            <button class="icon-btn" id="settingsBtn" title="设置" aria-label="打开设置">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.36a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.64a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.23.6.8 1 1.45 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
-            </button>
-          </div>
           <button class="icon-btn" id="helpBtn" title="快速指南" aria-label="快速指南"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.4a2.3 2.3 0 0 1 4.5.7c0 1.7-2.3 2-2.3 3.5"/><path d="M12 17h.01"/></svg></button>
         </div>
       </header>
@@ -102,6 +100,7 @@
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <div class="exp-preview" id="expPreview" aria-hidden="true"></div>
   <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
   <div class="palette-root" id="paletteRoot" aria-hidden="true"></div>
   <div class="mobile-scrim" id="mobileScrim"></div>

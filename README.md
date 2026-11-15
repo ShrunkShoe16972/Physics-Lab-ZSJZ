@@ -1,12 +1,12 @@
-# Prism · 棱镜物理实验室
+# 中山市中山纪念中学物理实验室
 
 [中文](#zh) · [English](#en)
 
-> **v0.5.0** · 22 个高中物理实验 · 多方案切换 · 模块化创意工坊 · LaTeX 公式
+> **v0.6.0** · 22 个高中物理实验 · 性能与背景 · 抽屉式侧边栏 · PowerPoint / WPS 联动
 >
-> 22 high-school physics experiments · scheme switching · modular lab builder · LaTeX formulas
+> 22 high-school physics experiments · performance backgrounds · drawer sidebar · PowerPoint / WPS linking
 
-[![Version](https://img.shields.io/badge/version-0.5.0-0a84ff)](#)
+[![Version](https://img.shields.io/badge/version-0.6.0-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
@@ -22,12 +22,12 @@
 
 ## 简介
 
-Prism 是一个面向高中物理的交互式实验平台。它把 **22 个高中物理基本实验** 做成可拖动、可采集数据、可生成图像的模拟器，并使用 Apple 风格的界面、深色实验舞台、实时读数与动画来呈现抽象的物理过程。
+Prism（中山市中山纪念中学物理实验室）是一个面向高中物理的交互式实验平台。它把 **22 个高中物理基本实验** 做成可拖动、可采集数据、可生成图像的模拟器，并使用 Apple 风格的界面、深色实验舞台、实时读数与动画来呈现抽象的物理过程。
 
 项目完全由 **HTML + CSS + JavaScript** 编写，不依赖后端、不需要安装 Node.js 或编译工具，双击即可运行。无需动态链接库，也不依赖外部 CDN。
 
 - 产品需求文档：[PRD.md](PRD.md)
-- 0.5.0 新增：按《实验总结》对齐 22 个实验、方案切换 dock、等温气体实验、模块化实验工坊
+- 0.6.0 新增：性能与动效设置、毛玻璃、动画速度、内置/上传/联网/桌面 API 背景、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 联动
 
 ## 快速启动
 
@@ -53,7 +53,7 @@ Prism 是一个面向高中物理的交互式实验平台。它把 **22 个高�
 
 ### 方式四：便携 EXE（分享给其他人）
 
-**`dist/PrismLab-0.5.0.exe`** 是单文件便携版，适用于 Windows 10 / 11：
+**`dist/PrismLab-0.6.0.exe`** 是单文件便携版，适用于 Windows 10 / 11：
 
 1. 把 exe 复制到任意目录，双击运行；
 2. 程序内置全部 HTML / CSS / JavaScript，不需要联网、不需要安装；
@@ -103,7 +103,12 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 - **本地档案**：学习进度、实验步骤、自定义实验保存在 `localStorage`。
 - **深色模式**、响应式布局、键盘快捷键、全局实验搜索。
 - **字体与主题**：齿轮设置支持 100%–150% 字体滑块、浅色 / 深色、Windows / macOS 主题，并保存到本地。
-- **顺滑滚轮浏览**：实验页、实验库与工坊均可用鼠标滚轮上下滚动；页面底部预留了充足空间，长内容不会被裁切。
+- **性能与背景**：左下角设置提供界面不透明度、毛玻璃 0–20 px、动画速度、6 张内置自然/科学背景、图片上传、Wikimedia 联网搜索和桌面壁纸 API。
+- **真实实验缩略图**：实验卡片使用对应实验舞台截图；鼠标悬停时在上方显示更大的实验预览。
+- **抽屉式侧边栏**：收起时侧边栏以固定宽度整体推入，徽标和文字不缩放；实验库下的学科分类会随进入/离开实验库展开和收起。
+- **关于页**：左下角“关于”在右侧主区域展示版本、最近更新、GitHub Issues 递交入口、完整 BSD 3-Clause 许可证与 PPT / WPS 联动说明。
+- **PPT / WPS 联动**：拖动实验卡片到 PowerPoint 或 WPS 幻灯片生成实验链接；放映时点击链接即可打开对应实验；实验页也提供「PPT 链接」复制按钮。
+- **品牌更新**：更名为“中山市中山纪念中学物理实验室”，使用学校校徽作为应用图标。
 
 ## 22 个实验
 
@@ -358,12 +363,12 @@ prism-physics-lab/
 
 ## Overview
 
-Prism is an interactive physics lab for high-school students. It turns **22 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
+The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive physics lab for high-school students. It turns **22 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
 
 The project is written entirely in **HTML + CSS + JavaScript**. It has no backend, no build step, and no runtime CDN dependency. Open it directly or run the bundled local server.
 
 - Product requirements: [PRD.md](PRD.md) (Chinese)
-- New in 0.5.0: 22-experiment content alignment, scheme-switching dock, isothermal gas experiment, modular lab builder
+- New in 0.6.0: performance controls, glass blur, animation speed, built-in/uploaded/online/desktop-API backgrounds, drawer sidebar, real experiment thumbnails, About page, and PowerPoint / WPS linking.
 
 ## Quick start
 
@@ -389,7 +394,7 @@ You can double-click `index.html` directly. For stable local progress storage, p
 
 ### 4. Portable EXE (Windows 10/11)
 
-**`dist/PrismLab-0.5.0.exe`** is a single-file portable build:
+**`dist/PrismLab-0.6.0.exe`** is a single-file portable build:
 
 1. copy it anywhere and double-click;
 2. all HTML / CSS / JavaScript is embedded; no network or installer required;
@@ -437,7 +442,12 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 - **Local profile**: progress, steps and custom experiments are stored in `localStorage`.
 - **Dark mode**, responsive layout, keyboard shortcuts and global search.
 - **Themes and fonts**: 100%–150% font slider, light / dark, Windows / macOS styles, persisted locally.
-- **Smooth scrolling**: the library, lab pages and workshop scroll naturally with the mouse wheel.
+- **Performance and backgrounds**: the bottom-left Settings panel provides UI opacity, 0–20 px glass blur, animation speed, six built-in nature/science backgrounds, image upload, Wikimedia search and a desktop-wallpaper API.
+- **Real thumbnails**: experiment cards use a screenshot of the corresponding stage; hovering shows a larger preview above the card.
+- **Drawer sidebar**: the sidebar slides in/out at a fixed width, so the school emblem and typography never scale; the subject list under the library expands on entry and collapses on exit.
+- **About page**: version, recent changelog, GitHub Issues entry, full BSD 3-Clause license and PowerPoint / WPS instructions in the main panel.
+- **PowerPoint / WPS linking**: drag an experiment card into a PowerPoint or WPS slide to create a hyperlink; clicking it during the slideshow opens the experiment. A **PPT Link** button is also available in each lab.
+- **Branding**: renamed to “Sun Yat-sen Memorial Secondary School Physics Lab”, with the official school emblem as the app icon.
 
 ## The 22 experiments
 

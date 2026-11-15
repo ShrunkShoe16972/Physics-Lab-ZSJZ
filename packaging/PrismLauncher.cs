@@ -66,8 +66,8 @@ namespace PrismLab
             {
                 Log("Fatal: " + ex);
                 MessageBox.Show(
-                    "Prism 物理实验室启动失败。\r\n\r\n" + ex.Message,
-                    "Prism 物理实验室",
+                    "中山市中山纪念中学物理实验室启动失败。\r\n\r\n" + ex.Message,
+                    "中山市中山纪念中学物理实验室",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -158,7 +158,7 @@ namespace PrismLab
             }
             if (tray.Icon == null) tray.Icon = SystemIcons.Application;
 
-            tray.Text = "Prism 物理实验室 v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            tray.Text = "中山市中山纪念中学物理实验室 v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
             tray.Visible = true;
 
             ContextMenuStrip menu = new ContextMenuStrip();
@@ -180,7 +180,7 @@ namespace PrismLab
             tray.DoubleClick += delegate { OpenBrowser(server.Url); };
             try
             {
-                tray.ShowBalloonTip(3500, "Prism 已启动",
+                tray.ShowBalloonTip(3500, "中山市中山纪念中学物理实验室已启动",
                     "如果浏览器没有自动打开，请右键托盘图标选择“打开实验室”。",
                     ToolTipIcon.Info);
             }
@@ -373,7 +373,7 @@ namespace PrismLab
                 Log("Fallback failed: " + ex.Message);
                 MessageBox.Show(
                     "无法自动打开浏览器，请手动访问：\r\n" + url + "\r\n\r\n" + ex.Message,
-                    "Prism 物理实验室",
+                    "中山市中山纪念中学物理实验室",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }

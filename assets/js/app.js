@@ -24,8 +24,23 @@
     theme: U.load().theme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     uiStyle: U.load().uiStyle === 'mac' ? 'mac' : 'win',
     fontScale: Number(U.load().fontScale) || 1,
+    uiOpacity: Number.isFinite(Number(U.load().uiOpacity)) ? Number(U.load().uiOpacity) : 72,
+    glassBlur: Number.isFinite(Number(U.load().glassBlur)) ? Number(U.load().glassBlur) : 18,
+    animSpeed: Number.isFinite(Number(U.load().animSpeed)) ? Number(U.load().animSpeed) : 1,
+    background: U.load().background || 'mountain-lake',
+    bgImage: U.load().bgImage || '',
+    wallpaperApi: U.load().wallpaperApi || '',
     paletteOpen: false, paletteIndex: 0, heroStop: null, focus: false
   };
+
+  const BACKGROUNDS = [
+    { id: 'mountain-lake', name: '山湖晨光', file: 'mountain-lake.jpg', tone: '自然' },
+    { id: 'forest-mist', name: '雾中森林', file: 'forest-mist.jpg', tone: '自然' },
+    { id: 'galaxy', name: '深空星系', file: 'galaxy.jpg', tone: '科学' },
+    { id: 'mountain-stars', name: '星夜山脊', file: 'mountain-stars.jpg', tone: '自然' },
+    { id: 'laboratory', name: '实验室光影', file: 'laboratory.jpg', tone: '科学' },
+    { id: 'ocean', name: '海岸浪涌', file: 'ocean.jpg', tone: '自然' }
+  ];
 
   function ui(name) { return (OL.iconsUI[name] || function () { return ''; })(); }
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -83,6 +98,164 @@
     }
   }
 
+  function applyPerformance(persist) {
+    state.uiOpacity = Math.max(0, Math.min(100, Number(state.uiOpacity)));
+    state.glassBlur = Math.max(0, Math.min(20, Number(state.glassBlur)));
+    state.animSpeed = Math.max(0.4, Math.min(2.5, Number(state.animSpeed)));
+    document.body.style.setProperty('--ui-veil', String(state.uiOpacity / 100));
+    document.body.style.setProperty('--glass-blur', state.glassBlur + 'px');
+    document.body.style.setProperty('--anim-scale', String(1 / state.animSpeed));
+    const appBg = $('#appBackground');
+    if (appBg) {
+      let url = '';
+      if (state.bgImage) url = state.bgImage;
+      else {
+        const preset = BACKGROUNDS.find((b) => b.id === state.background) || BACKGROUNDS[0];
+        url = 'assets/img/backgrounds/' + preset.file;
+      }
+      appBg.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '%22') + '")' : 'none';
+    }
+    syncPerformanceControls();
+    if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, wallpaperApi: state.wallpaperApi });
+    if (state.currentLab) {
+      state.currentLab.view.dirty = true;
+      if (state.currentLab.chart) setTimeout(() => state.currentLab && state.currentLab.chart.draw(), 30);
+    }
+  }
+
+  function setBackground(value, custom) {
+    if (custom) {
+      state.bgImage = value || '';
+      if (value) state.background = 'custom';
+    } else {
+      state.background = value;
+      state.bgImage = '';
+    }
+    applyPerformance(true);
+  }
+
+  function readBackgroundFile(file, done) {
+    if (!file || !/^image\//.test(file.type)) { toast('请选择图片文件', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = 1800, maxH = 1200;
+          let w = img.width, h = img.height;
+          const ratio = Math.min(1, maxW / w, maxH / h);
+          w = Math.max(1, Math.round(w * ratio)); h = Math.max(1, Math.round(h * ratio));
+          const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+          done(canvas.toDataURL('image/jpeg', 0.84));
+        } catch (err) { toast('图片处理失败：' + err.message, 'error'); }
+      };
+      img.onerror = () => toast('图片无法读取', 'error');
+      img.src = reader.result;
+    };
+    reader.onerror = () => toast('图片读取失败', 'error');
+    reader.readAsDataURL(file);
+  }
+
+  function bgResultsHTML(items) {
+    const box = $('[data-bg-results]');
+    if (!box) return;
+    if (!items.length) { box.innerHTML = '<p class="bg-hint">没有找到可用图片，换一个关键词试试。</p>'; return; }
+    box.innerHTML = '<div class="bg-result-grid">' + items.slice(0, 8).map((it) => '<button class="bg-result" data-bg-url="' + U.esc(it.url) + '" title="' + U.esc(it.title || '') + '"><img src="' + U.esc(it.thumb || it.url) + '" alt=""><span>' + U.esc((it.title || '壁纸').slice(0, 28)) + '</span></button>').join('') + '</div>';
+  }
+
+  async function searchWallpapers(query) {
+    const q = String(query || '').trim();
+    if (!q) { toast('请输入壁纸关键词', 'error'); return; }
+    const box = $('[data-bg-results]');
+    if (box) box.innerHTML = '<p class="bg-hint">正在搜索 Wikimedia Commons…</p>';
+    try {
+      const params = new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: q, gsrnamespace: '6', gsrlimit: '10', prop: 'imageinfo', iiprop: 'url', iiurlwidth: '1200', format: 'json', origin: '*' });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let res;
+      try { res = await fetch('https://commons.wikimedia.org/w/api.php?' + params.toString(), { mode: 'cors', signal: controller.signal }); }
+      finally { clearTimeout(timer); }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const pages = data.query && data.query.pages ? Object.values(data.query.pages) : [];
+      const items = pages.map((p) => ({ title: p.title, url: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].url : '', thumb: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].thumburl : '' })).filter((x) => x.url && /\.(jpe?g|png|webp)(\?|$)/i.test(x.url));
+      bgResultsHTML(items);
+      if (!items.length) toast('没有找到图片，换一个关键词试试', 'error');
+    } catch (err) {
+      if (box) box.innerHTML = '<p class="bg-hint">联网搜索失败：' + U.esc(err.message) + '。请检查网络，或使用上传图片 / 桌面 API。</p>';
+      toast('壁纸搜索失败', 'error');
+    }
+  }
+
+  async function syncDesktopWallpaper() {
+    const input = $('[data-wallpaper-api]');
+    const endpoint = String((input && input.value) || state.wallpaperApi || '').trim();
+    if (!endpoint) { toast('请先填写桌面壁纸 API 地址', 'error'); return; }
+    state.wallpaperApi = endpoint;
+    applyPerformance(true);
+    try {
+      let result;
+      if (window.prismWallpaper && typeof window.prismWallpaper.get === 'function') {
+        result = await window.prismWallpaper.get({ endpoint });
+      } else {
+        const res = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        result = await res.json();
+      }
+      let url = '';
+      if (typeof result === 'string') url = result;
+      else if (result && typeof result === 'object') {
+        url = result.url || result.image || result.imageUrl || result.wallpaper || (Array.isArray(result.urls) ? result.urls[0] : '') || (Array.isArray(result.images) ? result.images[0] : '');
+      }
+      if (!url || !/^(https?:|data:image\/)/.test(url)) throw new Error('API 未返回可用的图片 URL');
+      setBackground(url, true);
+      toast('已同步桌面壁纸');
+    } catch (err) {
+      toast('桌面壁纸同步失败：' + err.message, 'error');
+      const box = $('[data-bg-results]');
+      if (box) box.innerHTML = '<p class="bg-hint">桌面 API 调用失败：' + U.esc(err.message) + '。浏览器只能加载 http(s) 或 data:image 图片；本地文件路径需要由桌面 API 提供 HTTP 地址。</p>';
+    }
+  }
+
+  function syncPerformanceControls() {
+    $$('[data-perf]').forEach((el) => {
+      const key = el.dataset.perf;
+      const map = { opacity: state.uiOpacity, blur: state.glassBlur, speed: state.animSpeed };
+      if (key in map) {
+        el.value = map[key];
+        const out = $('[data-perf-value="' + key + '"]');
+        if (out) out.textContent = key === 'speed' ? map[key].toFixed(1) + '×' : Math.round(map[key]) + (key === 'blur' ? 'px' : '%');
+        const min = Number(el.min) || 0, max = Number(el.max) || 100;
+        el.style.setProperty('--fill', ((Number(el.value) - min) / (max - min) * 100) + '%');
+      }
+    });
+    $$('[data-bg-id]').forEach((b) => b.classList.toggle('active', !state.bgImage && b.dataset.bgId === state.background));
+    $$('[data-bg-custom]').forEach((b) => b.classList.toggle('active', !!state.bgImage && b.dataset.bgCustom === 'upload'));
+    const api = $('[data-wallpaper-api]');
+    if (api && document.activeElement !== api) api.value = state.wallpaperApi || '';
+  }
+
+  function performanceFields() {
+    const cards = BACKGROUNDS.map((b) => '<button class="bg-choice' + (!state.bgImage && state.background === b.id ? ' active' : '') + '" data-bg-id="' + b.id + '"><img src="assets/img/backgrounds/thumb-' + b.file + '" alt="' + U.esc(b.name) + '"><span>' + U.esc(b.name) + '</span><em>' + b.tone + '</em></button>').join('');
+    return '<div class="settings-block perf-block">' +
+      '<div class="settings-label"><span><b>性能与动效</b><em>降低动效速度或关闭毛玻璃可改善低性能设备</em></span></div>' +
+      '<div class="perf-grid">' +
+      '<label class="perf-control"><span>界面不透明度 <b data-perf-value="opacity">' + Math.round(state.uiOpacity) + '%</b></span><input type="range" min="0" max="100" step="1" value="' + state.uiOpacity + '" data-perf="opacity"></label>' +
+      '<label class="perf-control"><span>毛玻璃模糊 <b data-perf-value="blur">' + state.glassBlur + 'px</b></span><input type="range" min="0" max="20" step="1" value="' + state.glassBlur + '" data-perf="blur"></label>' +
+      '<label class="perf-control"><span>动画速度 <b data-perf-value="speed">' + state.animSpeed.toFixed(1) + '×</b></span><input type="range" min="0.4" max="2.5" step="0.1" value="' + state.animSpeed + '" data-perf="speed"></label>' +
+      '</div></div>' +
+      '<div class="settings-block bg-block"><div class="settings-label"><span><b>软件背景</b><em>内置自然与科学图片 · 支持上传、联网搜索和桌面壁纸 API</em></span><span class="pill">' + (state.bgImage ? '自定义' : (BACKGROUNDS.find((b) => b.id === state.background) || BACKGROUNDS[0]).name) + '</span></div>' +
+      '<div class="bg-grid">' + cards + '<button class="bg-choice bg-upload' + (state.bgImage ? ' active' : '') + '" data-bg-upload><span class="bg-upload-ico">+</span><span>上传图片</span><em>从本机选择</em></button></div>' +
+      '<div class="bg-tools"><div class="bg-search"><input type="text" placeholder="联网搜索壁纸，如：星云 / 森林 / 实验室" data-bg-query><button class="btn ghost small" data-bg-search>联网搜索</button></div>' +
+      '<div class="bg-search"><input type="text" placeholder="桌面壁纸 API 地址，如 http://127.0.0.1:17890/wallpaper" data-wallpaper-api><button class="btn ghost small" data-wallpaper-sync>同步桌面壁纸</button></div></div>' +
+      '<div class="bg-results" data-bg-results><p class="bg-hint">联网搜索使用 Wikimedia Commons；桌面 API 需返回 <code>{ "url": "..." }</code> 或图片地址数组。自定义图片会压缩后保存在本机。</p></div>' +
+      '<div class="bg-credit">内置图片来自 Unsplash，仅用于界面背景；可在设置中随时切换或清除。</div>' +
+      '<button class="btn ghost small" data-bg-clear>恢复默认背景</button>' +
+      '</div>' +
+      '<input type="file" accept="image/*" data-bg-file hidden>';
+  }
+
   function syncAppearanceControls() {
     const pct = Math.round(state.fontScale * 100);
     $$('[data-font-value]').forEach((el) => { el.textContent = pct + '%'; });
@@ -123,11 +296,20 @@
 
   function setCrumb(html) { const el = $('#crumb'); if (el) el.innerHTML = html; }
 
+  function setLibraryExpanded(open) {
+    const sub = $('#catSub');
+    const btn = $('.nav-library');
+    if (sub) sub.classList.toggle('open', !!open);
+    if (sub) sub.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
   function setActiveNav(name, category) {
     $$('.nav-item').forEach((b) => b.classList.remove('active'));
     if (name === 'home') { const b = $('.nav-item[data-route="home"]'); if (b) b.classList.add('active'); }
     if (name === 'library') { const b = $('.nav-item[data-route="library"]'); if (b) b.classList.add('active'); }
     if (name === 'workshop') { const b = $('.nav-item[data-route="workshop"]'); if (b) b.classList.add('active'); }
+    setLibraryExpanded(name === 'library');
     if (category) {
       const c = $('.nav-cat[data-cat="' + category + '"]');
       if (c) c.classList.add('active');
@@ -144,10 +326,13 @@
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, 2500);
   }
 
+  let modalSeq = 0;
   function openModal(title, body, opts) {
     opts = opts || {};
+    modalSeq++;
     setFontPanel(false);
     const root = $('#modalRoot');
+    root.classList.remove('closing');
     root.innerHTML = '<div class="modal-scrim" data-action="close-modal"></div>' +
       '<div class="modal" role="dialog" aria-modal="true">' +
       '<div class="modal-head"><div><h2>' + U.esc(title) + '</h2>' + (opts.sub ? '<p>' + opts.sub + '</p>' : '') + '</div><button class="icon-btn" data-action="close-modal" aria-label="关闭"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
@@ -162,20 +347,28 @@
 
   function closeModal() {
     const root = $('#modalRoot');
+    if (!root.classList.contains('open')) return;
+    const seq = ++modalSeq;
     root.classList.remove('open');
+    root.classList.add('closing');
     root.setAttribute('aria-hidden', 'true');
-    root.innerHTML = '';
+    setTimeout(() => {
+      if (seq !== modalSeq) return;
+      root.classList.remove('closing');
+      root.innerHTML = '';
+    }, 220 / state.animSpeed);
   }
 
   function openHelp() {
     openModal('快速指南', [
-      '<p style="margin:0 0 14px;color:var(--text-2);font-size:12px;line-height:1.7">Prism 把高中物理的 22 个基本实验做成了可交互的模拟器。每个实验都提供实时读数、图像探究与实验向导。</p>',
+      '<p style="margin:0 0 14px;color:var(--text-2);font-size:12px;line-height:1.7">中山市中山纪念中学物理实验室把高中物理的 22 个基本实验做成了可交互的模拟器。每个实验都提供实时读数、图像探究与实验向导。</p>',
       '<div class="api-list">',
       '<li>' + ui('info') + '<span><b>拖动变量</b>：右侧滑块会实时改变模拟，图像同步更新。</span></li>',
       '<li>' + ui('chart') + '<span><b>采集数据</b>：点击按钮记录一组数据，图表与数据表会自动累积。</span></li>',
       '<li>' + ui('play') + '<span><b>播放 / 暂停</b>：按 <kbd class="kbd-hint">空格</kbd> 控制运动类实验。</span></li>',
       '<li>' + ui('spark') + '<span><b>创意工坊</b>：用公式和变量设计自己的实验，并导出为 JSON 或插件。</span></li>',
-      '<li><span style="font-weight:700;font-size:13px">⚙</span><span><b>设置</b>：右上角齿轮可调整字体大小（100%–150%）、明暗外观与 Windows / macOS 主题。</span></li>',
+      '<li><span style="font-weight:700;font-size:13px">⚙</span><span><b>设置</b>：左下角学习进度上方，可调整字体、外观、性能、毛玻璃、动画速度与背景。</span></li>',
+      '<li><span style="font-weight:700;font-size:13px">↗</span><span><b>PPT / WPS</b>：拖动实验卡片到幻灯片生成链接，放映时点击即可跳转；也可在实验页复制「PPT 链接」。</span></li>',
       '</div>',
       '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:10px;color:var(--text-3)">快捷键：⌘/Ctrl + K 搜索 · 空格 播放/暂停 · R 重置 · Esc 关闭</div>'
     ].join(''));
@@ -186,7 +379,7 @@
       '<div class="settings-label"><span><b>字体大小</b><em>同时影响界面、实验画布和图表标注</em></span><strong data-font-value>' + Math.round(state.fontScale * 100) + '%</strong></div>' +
       '<input class="settings-range" type="range" min="100" max="150" step="1" value="' + Math.round(state.fontScale * 100) + '" data-font-slider aria-label="字体大小">' +
       '<div class="range-scale"><span>100%</span><span>125%</span><span>150%</span></div>' +
-      '<div class="font-preview">把每一个公式，变成看得见的实验。<span>Prism · 棱镜物理实验室</span></div>' +
+      '<div class="font-preview">把每一个公式，变成看得见的实验。<span>中山市中山纪念中学物理实验室</span></div>' +
       '</div>' +
       '<div class="settings-block">' +
       '<div class="settings-label"><span><b>明暗外观</b><em>白天与夜晚都可以舒适阅读</em></span></div>' +
@@ -203,15 +396,16 @@
   }
 
   function openSettings() {
-    openModal('设置', appearanceFields(), {
-      sub: '外观、字号与主题会保存在这台设备上',
+    openModal('设置', appearanceFields() + performanceFields(), {
+      sub: '外观、字号、性能与背景会保存在这台设备上',
       footer: '<button class="btn ghost small" data-action="reopen-welcome">重新查看欢迎页</button><button class="btn" data-action="close-modal">完成</button>'
     });
     syncAppearanceControls();
+    syncPerformanceControls();
   }
 
   function openWelcome() {
-    openModal('欢迎来到 Prism', '<p class="welcome-lead">先选择你的阅读方式。以后随时可以在右上角 <b>设置</b> 中修改。</p>' + appearanceFields(), {
+    openModal('欢迎来到中山市中山纪念中学物理实验室', '<p class="welcome-lead">先选择你的阅读方式。以后随时可以在左下角 <b>设置</b> 中修改。</p>' + appearanceFields(), {
       sub: '22 个高中物理实验，准备好了',
       footer: '<button class="btn" data-action="finish-welcome">开始探索 ' + ui('arrow') + '</button>'
     });
@@ -247,8 +441,11 @@
     });
   }
 
+  let paletteSeq = 0;
   function openPalette() {
     const root = $('#paletteRoot');
+    paletteSeq++;
+    root.classList.remove('closing');
     setFontPanel(false);
     state.paletteOpen = true;
     state.paletteIndex = 0;
@@ -314,9 +511,16 @@
   function closePalette() {
     state.paletteOpen = false;
     const root = $('#paletteRoot');
+    if (!root.classList.contains('open')) return;
+    const seq = ++paletteSeq;
     root.classList.remove('open');
+    root.classList.add('closing');
     root.setAttribute('aria-hidden', 'true');
-    root.innerHTML = '';
+    setTimeout(() => {
+      if (seq !== paletteSeq) return;
+      root.classList.remove('closing');
+      root.innerHTML = '';
+    }, 220 / state.animSpeed);
   }
 
   /* ------------------------------------------------------------
@@ -330,6 +534,7 @@
     if (parts[0] === 'workshop') return { name: 'workshop' };
     if (parts[0] === 'category' && parts[1]) return { name: 'library', filter: parts[1] };
     if (parts[0] === 'library') return { name: 'library' };
+    if (parts[0] === 'about') return { name: 'about' };
     return { name: 'home' };
   }
 
@@ -337,6 +542,19 @@
     const next = '#/' + String(path || 'home').replace(/^#?\/?/, '');
     if (location.hash === next) renderRoute(true);
     else location.hash = next;
+  }
+
+  function labUrl(id) {
+    if (location.protocol === 'file:') return 'file:///' + location.pathname.replace(/^\/+/, '') + '#/lab/' + id;
+    return location.origin + '/#/lab/' + id;
+  }
+
+  function copyLabLink() {
+    if (!state.currentLab) return;
+    const url = labUrl(state.currentLab.id);
+    const done = () => toast('实验链接已复制，可粘贴为 PPT 超链接');
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => toast(url));
+    else toast(url);
   }
 
   function renderRoute(fromHash) {
@@ -347,16 +565,20 @@
     viewEl.scrollTop = 0;
     if (r.name === 'home') {
       state.route = 'home'; state.filter = state.filter || 'all';
-      renderHome(); setCrumb('<span>工作台</span><i>/</i><strong>概览</strong>'); setActiveNav('home');
+      renderHome(); setCrumb('<strong>概览</strong>'); setActiveNav('home');
     } else if (r.name === 'library') {
       state.route = 'library';
       if (r.filter) state.filter = r.filter;
-      renderLibrary(); setCrumb('<span>工作台</span><i>/</i><strong>实验库</strong>'); setActiveNav('library', state.filter !== 'all' ? state.filter : null);
+      renderLibrary(); setCrumb('<strong>实验库</strong>'); setActiveNav('library', state.filter !== 'all' ? state.filter : null);
     } else if (r.name === 'workshop') {
       state.route = 'workshop';
-      renderWorkshop(); setCrumb('<span>工作台</span><i>/</i><strong>创意工坊</strong>'); setActiveNav('workshop');
+      renderWorkshop(); setCrumb('<strong>创意工坊</strong>'); setActiveNav('workshop');
+    } else if (r.name === 'about') {
+      state.route = 'about';
+      renderAbout(); setCrumb('<strong>关于</strong>'); setActiveNav('about');
     } else {
-      renderHome(); setCrumb('<span>工作台</span><i>/</i><strong>概览</strong>'); setActiveNav('home');
+      state.route = 'home';
+      renderHome(); setCrumb('<strong>概览</strong>'); setActiveNav('home');
     }
     $('#topbar') && $('#topbar').classList.remove('scrolled');
     const tb = $('.topbar'); if (tb) tb.classList.remove('scrolled');
@@ -371,8 +593,10 @@
     const cat = catOf(e);
     const book = OL.bookOf ? OL.bookOf(e) : null;
     const done = U.isDone(e.id);
-    return '<button class="exp-card" data-lab="' + e.id + '" style="--accent:' + (e.accent || cat.color) + '">' +
-      '<span class="exp-art"><span class="art-label">' + U.esc(cat.en) + '</span>' + OL.icon(e.icon) +
+    const thumb = 'assets/img/thumbs/' + e.id + '.jpg';
+    return '<button class="exp-card" data-lab="' + e.id + '" data-thumb="' + thumb + '" draggable="true" title="点击打开 · 拖动到 PowerPoint / WPS 生成实验链接" style="--accent:' + (e.accent || cat.color) + '">' +
+      '<span class="exp-art"><span class="art-label">' + U.esc(cat.en) + '</span><span class="exp-icon">' + OL.icon(e.icon) + '</span>' +
+      '<img class="exp-thumb" src="' + thumb + '" alt="' + U.esc(e.title) + '" onerror="this.remove()">' +
       '<span class="exp-num">' + pad(e.n || 0) + '</span>' +
       (done ? '<span class="done-mark">' + ui('check') + '</span>' : '') + '</span>' +
       '<span class="exp-body"><h3>' + U.esc(e.title) + '</h3><p>' + U.esc(e.short) + '</p>' +
@@ -468,10 +692,10 @@
       '<div class="quick-stat"><strong>4</strong><em>学科领域</em></div>' +
       '</div></div>' +
       '<div class="section-head"><div><h2>实验库</h2><p>选择一个实验，开始你的探究</p></div><button class="section-link" data-route="library">查看全部 ' + ui('arrow') + '</button></div>' +
-      '<div class="filter-row" id="homeFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
+      '<div class="filter-row" id="homeFilters"><span class="filter-label">板块</span>' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
       '<div class="filter-row book-filter-row" id="homeBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
-      '<section class="workshop-promo card"><div class="wp-ico">' + ui('spark') + '</div><div class="wp-copy"><span class="eyebrow">开放实验工坊</span><h3>不只是使用者，也成为实验设计者。</h3><p>用变量、公式与可视化画布搭建自己的物理实验，导入导出 JSON，或通过插件接口扩展 Prism。</p></div><button class="btn ghost" data-route="workshop">进入工坊 ' + ui('arrow') + '</button></section>' +
+      '<section class="workshop-promo card"><div class="wp-ico">' + ui('spark') + '</div><div class="wp-copy"><span class="eyebrow">开放实验工坊</span><h3>不只是使用者，也成为实验设计者。</h3><p>用变量、公式与可视化画布搭建自己的物理实验，导入导出 JSON，或通过插件接口扩展实验室。</p></div><button class="btn ghost" data-route="workshop">进入工坊 ' + ui('arrow') + '</button></section>' +
       '</div>';
     startHero();
   }
@@ -483,7 +707,7 @@
     viewEl.innerHTML = '<div class="view-inner">' +
       '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">' + OL.experiments.length + ' 个实验，<br>一条完整的物理脉络。</h1><p class="page-sub">力学、电磁学、光学与分子热学。每个实验都可以拖动变量、记录数据、生成图像。</p></div>' +
       '<div class="library-progress"><span class="ring" style="--p:' + pct + '%"></span><span><b style="color:var(--text)">' + done + '/' + OL.experiments.length + '</b> 已完成</span></div></div>' +
-      '<div class="filter-row" id="libFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
+      '<div class="filter-row" id="libFilters"><span class="filter-label">板块</span>' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
       '<div class="filter-row book-filter-row" id="libBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
       '</div>';
@@ -682,6 +906,46 @@
       '</div>';
   }
 
+  function renderAbout() {
+    const issueUrl = 'https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ/issues';
+    const releaseUrl = 'https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ/releases';
+    const licenseText = [
+      'BSD 3-Clause License',
+      '',
+      'Copyright (c) 2026, 中山纪念中学，张荣轩，胡婧潆，李诺宇，叶君逸，刘熠宸',
+      '',
+      'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:',
+      '',
+      '1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.',
+      '2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.',
+      '3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.',
+      '',
+      'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
+    ].join('\n');
+    viewEl.innerHTML = '<div class="view-inner about-page">' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.0</span></section>' +
+      '<div class="about-grid">' +
+      '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
+      '<div class="about-version-row"><strong>0.6.0</strong><span>2026-11-15</span></div>' +
+      '<p>当前版本聚焦视觉性能、背景系统、实验缩略图、关于页与 PowerPoint / WPS 联动。</p>' +
+      '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
+      '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
+      '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
+      '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
+      '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
+      '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
+      '<div class="about-changelog"><div><b>0.6.0</b><span>2026-11-15</span><p>性能与背景设置、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 链接联动。</p></div>' +
+      '<div><b>0.5.0</b><span>2026-11-15</span><p>按《实验总结》对齐 22 个实验，新增 7 个实验的方案切换、等温气体实验和模块化工坊。</p></div>' +
+      '<div><b>0.4.2</b><span>2026-11-14</span><p>运动实验连续运行、播放中参数平滑过渡、侧边栏收起和实验左右切换。</p></div></div></section>' +
+      '<section class="card about-card about-wide"><div class="about-card-head"><h2>BSD 3-Clause License</h2><span class="pill">LICENSE</span></div>' +
+      '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
+      '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
+      '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.0-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '</div></div>';
+  }
+
+
   function renderLab(id) {
     teardownLab();
     viewEl.scrollTop = 0;
@@ -734,6 +998,7 @@
       '<p class="lab-sub">' + U.esc(exp.description) + '</p></div>' +
       '<div class="lab-head-right">' + labSwitcher +
       (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
+      '<button class="btn ghost small" data-action="ppt-link">' + ui('arrow') + ' PPT 链接</button>' +
       '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
       schemeDock +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
@@ -931,7 +1196,7 @@
     let lastReadout = 0, lastChart = 0, lastTable = 0;
     function loop(now) {
       if (!cur.alive || state.currentLab !== cur) return;
-      const dt = Math.min(0.04, Math.max(0, (now - cur.view.lastTs) / 1000));
+      const dt = Math.min(0.04, Math.max(0, (now - cur.view.lastTs) / 1000)) * (state.animSpeed || 1);
       cur.view.lastTs = now;
       if (easeLabState(cur, now)) cur.view.dirty = true;
       if (cur.view.playing) {
@@ -1172,6 +1437,10 @@
     if (route) {
       const path = route.dataset.route;
       closeMobile();
+      if (path === 'library' && state.route === 'library' && route.classList.contains('nav-library')) {
+        setLibraryExpanded(!$('#catSub').classList.contains('open'));
+        return;
+      }
       if (path === 'home' || path === 'library' || path === 'workshop') navigate(path);
       return;
     }
@@ -1249,6 +1518,7 @@
       else if (action === 'open-workshop') navigate('workshop');
       else if (action === 'open-settings') openSettings();
       else if (action === 'error-analysis') openErrorAnalysis();
+      else if (action === 'ppt-link') copyLabLink();
       else if (action === 'prev-lab' || action === 'next-lab') {
         if (state.currentLab) {
           const idx = OL.experiments.findIndex((e) => e.id === state.currentLab.id);
@@ -1341,13 +1611,93 @@
     if (viewEl.scrollTop !== before) e.preventDefault();
   }, { passive: false });
 
+  document.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.exp-card[data-lab]');
+    if (!card) return;
+    const url = labUrl(card.dataset.lab);
+    e.dataTransfer.effectAllowed = 'copyLink';
+    e.dataTransfer.setData('text/uri-list', url);
+    e.dataTransfer.setData('text/plain', url);
+    e.dataTransfer.setData('text/html', '<a href="' + U.esc(url) + '">' + U.esc((resolveExp(card.dataset.lab) || {}).title || '物理实验') + '</a>');
+    e.dataTransfer.setData('application/x-prism-lab', JSON.stringify({ id: card.dataset.lab, url }));
+    card.classList.add('dragging');
+    hideExpPreview();
+  });
+  document.addEventListener('dragend', (e) => {
+    const card = e.target.closest('.exp-card');
+    if (card) card.classList.remove('dragging');
+  });
+
+  function hideExpPreview() {
+    const el = $('#expPreview');
+    if (el) { el.classList.remove('show'); el.setAttribute('aria-hidden', 'true'); }
+    state.hoverLab = null;
+  }
+  function showExpPreview(card) {
+    if (!card || state.hoverLab === card.dataset.lab) return;
+    const exp = resolveExp(card.dataset.lab);
+    if (!exp) return;
+    state.hoverLab = card.dataset.lab;
+    let el = $('#expPreview');
+    if (!el) { el = document.createElement('div'); el.id = 'expPreview'; el.className = 'exp-preview'; document.body.appendChild(el); }
+    el.innerHTML = '<img src="' + card.dataset.thumb + '" alt=""><div><span>' + U.esc((catOf(exp).name || '') + ' · #' + pad(exp.n || 0)) + '</span><b>' + U.esc(exp.title) + '</b><p>' + U.esc(exp.short || '') + '</p></div>';
+    el.classList.add('show'); el.setAttribute('aria-hidden', 'false');
+    const r = card.getBoundingClientRect();
+    el.style.left = Math.max(12, Math.min(window.innerWidth - 300, r.left + r.width / 2 - 140)) + 'px';
+    const above = r.top - 136;
+    el.style.top = (above > 12 ? above : r.bottom + 10) + 'px';
+  }
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest('.exp-card');
+    if (card) showExpPreview(card);
+  });
+  document.addEventListener('mouseout', (e) => {
+    const card = e.target.closest('.exp-card');
+    if (!card) return;
+    if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+    hideExpPreview();
+  });
+  viewEl.addEventListener('scroll', hideExpPreview, { passive: true });
+
   document.addEventListener('input', (e) => {
     const slider = e.target.closest('[data-font-slider]');
-    if (!slider) return;
-    applyFontScale(Number(slider.value), true);
+    if (slider) { applyFontScale(Number(slider.value), true); return; }
+    const perf = e.target.closest('[data-perf]');
+    if (perf) {
+      const key = perf.dataset.perf;
+      if (key === 'opacity') state.uiOpacity = Number(perf.value);
+      if (key === 'blur') state.glassBlur = Number(perf.value);
+      if (key === 'speed') state.animSpeed = Number(perf.value);
+      applyPerformance(true);
+      return;
+    }
+    if (e.target.closest('[data-wallpaper-api]')) {
+      state.wallpaperApi = e.target.value.trim();
+      U.save({ wallpaperApi: state.wallpaperApi });
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const bgChoice = e.target.closest('[data-bg-id]');
+    if (bgChoice) { setBackground(bgChoice.dataset.bgId, false); toast('背景已切换'); return; }
+    if (e.target.closest('[data-bg-upload]')) { const f = $('[data-bg-file]'); if (f) f.click(); return; }
+    if (e.target.closest('[data-bg-clear]')) { setBackground('mountain-lake', false); toast('已恢复默认背景'); return; }
+    if (e.target.closest('[data-bg-search]')) { const q = $('[data-bg-query]'); searchWallpapers(q ? q.value : ''); return; }
+    if (e.target.closest('[data-wallpaper-sync]')) { syncDesktopWallpaper(); return; }
+    const remote = e.target.closest('[data-bg-url]');
+    if (remote) { setBackground(remote.dataset.bgUrl, true); toast('背景已应用'); return; }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('[data-bg-file]')) {
+      const file = e.target.files && e.target.files[0];
+      readBackgroundFile(file, (data) => { setBackground(data, true); toast('背景已上传并应用'); });
+      e.target.value = '';
+    }
   });
 
   $('#settingsBtn').addEventListener('click', openSettings);
+  $('#aboutBtn').addEventListener('click', () => navigate('about'));
   $('#searchBtn').addEventListener('click', openPalette);
   $('#helpBtn').addEventListener('click', openHelp);
   const sidebarToggle = $('#sidebarToggle');
@@ -1364,7 +1714,7 @@
         state.currentLab.view.dirty = true;
         if (state.currentLab.chart) state.currentLab.chart.draw();
       }
-    }, 380);
+    }, 420 / state.animSpeed);
   }
   if (sidebarToggle) sidebarToggle.addEventListener('click', () => setSidebarFocus(!state.focus));
   $('#menuBtn').addEventListener('click', () => {
@@ -1388,6 +1738,7 @@
   applyUiStyle(state.uiStyle, false);
   applyTheme(state.theme, false);
   applyFontScale(state.fontScale, false);
+  applyPerformance(false);
   syncProgress();
   if (!location.hash) renderRoute(false);
   else renderRoute(false);

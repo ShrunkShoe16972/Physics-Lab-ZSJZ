@@ -288,7 +288,7 @@
     const d = defaults();
     const custom = _custom;
     return '<div class="view-inner">' +
-      '<section class="workshop-hero"><span class="eyebrow">OPEN LAB STUDIO</span><h1>把想法，写成<br>可以运行的实验。</h1><p>选择变量、写下公式、实时预览。你设计的实验会立即进入 Prism 的实验库，也可以导出为 JSON 或通过开放接口分享给其他人。</p>' +
+      '<section class="workshop-hero"><span class="eyebrow">OPEN LAB STUDIO</span><h1>把想法，写成<br>可以运行的实验。</h1><p>选择变量、写下公式、实时预览。你设计的实验会立即进入实验室，也可以导出为 JSON 或通过开放接口分享给其他人。</p>' +
       '<div class="hero-actions"><button class="btn primary-hero" data-ws="focus-form">' + OL.iconsUI.spark() + ' 开始设计</button><button class="btn secondary" data-ws="import-json">' + OL.iconsUI.upload() + ' 导入 JSON</button></div></section>' +
       '<div class="ws-tabs"><button data-ws-mode="formula" class="active">函数实验 <small>y = f(t, a, b)</small></button><button data-ws-mode="modules">模块搭建 <small>拖动器具 · 连线 · 运行</small><span class="ws-new">NEW</span></button></div>' +
       '<div class="ws-panel" data-ws-panel="formula">' +
