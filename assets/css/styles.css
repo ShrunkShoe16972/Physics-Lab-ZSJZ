@@ -186,7 +186,7 @@ svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width:
 [hidden] { display: none !important; }
 
 /* ---------- Ambient background ---------- */
-.ambient { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.ambient { display: none; position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .ambient-orb {
   position: absolute; display: block; border-radius: 50%;
   filter: blur(90px); opacity: 0.5; will-change: transform;
@@ -560,7 +560,7 @@ body.focus-mode .sidebar-toggle svg { transform: rotate(180deg); }
 }
 .experiment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .exp-card {
-  position: relative; display: flex; flex-direction: column; min-height: 258px;
+  position: relative; display: flex; flex-direction: column; min-height: 292px;
   padding: 0; overflow: hidden; text-align: left;
   background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
   box-shadow: var(--shadow-sm); cursor: grab;
@@ -570,47 +570,16 @@ body.focus-mode .sidebar-toggle svg { transform: rotate(180deg); }
 .exp-card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--accent) 26%, var(--line)); box-shadow: var(--shadow-md); }
 .exp-card:active { transform: translateY(-1px) scale(0.996); }
 .exp-art {
-  position: relative; height: 132px; overflow: hidden;
-  background:
-    radial-gradient(120% 160% at 18% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 58%),
-    linear-gradient(150deg, color-mix(in srgb, var(--accent) 5%, var(--panel-solid)), color-mix(in srgb, var(--accent) 12%, var(--panel-solid)));
-  border-bottom: 1px solid var(--line);
-}
-.exp-art::before {
-  content: ""; position: absolute; inset: 0; z-index: 1;
-  background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 0.7px, transparent 0.7px);
-  background-size: 15px 15px; opacity: 0.65;
-  mask-image: linear-gradient(110deg, #000, transparent 78%);
+  position: relative; height: 176px; overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-solid));
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 32%, var(--line));
 }
 .exp-thumb {
   position: absolute; inset: 0; z-index: 0;
   width: 100%; height: 100%; object-fit: cover; object-position: center;
   transition: transform 0.5s var(--ease), filter 0.3s;
 }
-.exp-card:hover .exp-thumb { transform: scale(1.045); filter: saturate(1.08); }
-.exp-icon { position: absolute; right: 18px; top: 17px; width: 84px; height: 84px; z-index: 1; opacity: .22; }
-.exp-art svg {
-  position: absolute; right: 18px; top: 17px; width: 84px; height: 84px;
-  color: var(--accent); opacity: 0.9; stroke-width: 1.35;
-  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent) 16%, transparent));
-  transition: transform 0.45s var(--ease);
-}
-.exp-card:hover .exp-art svg { transform: translateY(-3px) rotate(-2deg) scale(1.04); }
-.exp-num {
-  position: absolute; z-index: 2; left: 17px; bottom: 12px;
-  font: 600 9.5px var(--mono); letter-spacing: 0.1em; color: #fff;
-  text-shadow: 0 1px 5px rgba(0,0,0,.65);
-}
-.exp-art .art-label {
-  position: absolute; z-index: 2; left: 17px; top: 15px;
-  font-size: 9px; font-weight: 650; letter-spacing: 0.1em;
-  color: rgba(255,255,255,.88); text-transform: uppercase;
-  text-shadow: 0 1px 5px rgba(0,0,0,.65);
-}
-.exp-art::after {
-  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(180deg, rgba(7,12,22,.05) 0%, transparent 40%, rgba(7,12,22,.52) 100%);
-}
+.exp-card:hover .exp-thumb { transform: scale(1.045); filter: saturate(1.08) contrast(1.02); }
 .exp-preview {
   position: fixed; z-index: 120; width: 280px; padding: 7px;
   border-radius: 13px; border: 1px solid var(--line-strong);
@@ -1080,7 +1049,61 @@ input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border: 0; bo
   .module-head { flex-direction: column; }
 }
 
-/* ---------- About ---------- */
+/* ---------- Unified type scale ---------- */
+:root {
+  --type-2xs: calc(7.5px * var(--fs));
+  --type-xs: calc(9px * var(--fs));
+  --type-sm: calc(10.5px * var(--fs));
+  --type-base: calc(12px * var(--fs));
+  --type-md: calc(14px * var(--fs));
+  --type-lg: calc(18px * var(--fs));
+}
+body { font-size: var(--type-base); }
+.nav-item { font-size: var(--type-md); }
+.nav-sub .nav-item { font-size: var(--type-sm); }
+.nav-count, .nav-badge, .nav-label { font-size: var(--type-xs); }
+.brand-type em, .crumb, .topbar .search-trigger, .filter-label, .filter-count { font-size: var(--type-sm); }
+.crumb strong { font-size: var(--type-md); }
+.filter-chip, .tag, .book-tag, .pill, .sub, .control-note { font-size: var(--type-sm); }
+.exp-body h3 { font-size: var(--type-md); }
+.exp-body p { font-size: var(--type-base); }
+.exp-foot .tag, .exp-foot .go { font-size: var(--type-xs); }
+.card-head h3, .guide-head h3, .viz-head h3, .section-head h2 { font-size: var(--type-md); }
+.control-top label, .control-value, .readout-label, .metric-label { font-size: var(--type-sm); }
+.readout-value, .metric-value { font-size: var(--type-lg); }
+.settings-label b, .about-card-head h2 { font-size: var(--type-md); }
+.settings-label em, .about-card p, .about-steps { font-size: var(--type-sm); }
+.about-changelog p { font-size: var(--type-sm); }
+.about-changelog span, .about-license { font-size: var(--type-xs); }
+.about-license { line-height: 1.6; }
+.palette-item strong { font-size: var(--type-sm); }
+.palette-item span, .palette-foot, .palette-group-label { font-size: var(--type-xs); }
+.ws-tabs button { font-size: var(--type-sm); }
+.module-tool, .module-name, .module-field input { font-size: var(--type-sm); }
+.module-part-chip b { font-size: var(--type-sm); }
+.module-part-chip small, .module-cat > span { font-size: var(--type-2xs); }
+
+/* ---------- Subtle native scrollbars ---------- */
+.modal, .about-license, .sidebar-scroll, .palette-list, #view {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-3) 22%, transparent) transparent;
+}
+.modal::-webkit-scrollbar, .about-license::-webkit-scrollbar, .sidebar-scroll::-webkit-scrollbar, .palette-list::-webkit-scrollbar, #view::-webkit-scrollbar {
+  width: 6px; height: 6px;
+}
+.modal::-webkit-scrollbar-track, .about-license::-webkit-scrollbar-track, .sidebar-scroll::-webkit-scrollbar-track, .palette-list::-webkit-scrollbar-track, #view::-webkit-scrollbar-track { background: transparent; }
+.modal::-webkit-scrollbar-thumb, .about-license::-webkit-scrollbar-thumb, .sidebar-scroll::-webkit-scrollbar-thumb, .palette-list::-webkit-scrollbar-thumb, #view::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 16%, transparent);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.modal:hover::-webkit-scrollbar-thumb, .about-license:hover::-webkit-scrollbar-thumb, .sidebar-scroll:hover::-webkit-scrollbar-thumb, .palette-list:hover::-webkit-scrollbar-thumb, #view:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 30%, transparent);
+  background-clip: padding-box;
+}
+.about-license { padding-right: 8px; }
+
 .about-hero {
   position: relative; display: flex; align-items: center; gap: 24px;
   padding: 34px 36px; margin: 0 0 18px; border-radius: 22px;
@@ -1123,7 +1146,7 @@ input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border: 0; bo
 }
 
 /* Performance backdrop override */
-.topbar, .card, .lab-switcher, .scheme-dock, .font-pop, .modal, .palette, .exp-preview {
+.topbar, .font-pop, .modal, .palette {
   backdrop-filter: saturate(180%) blur(var(--glass-blur));
   -webkit-backdrop-filter: saturate(180%) blur(var(--glass-blur));
 }
@@ -1251,6 +1274,10 @@ input[type="range"]::-moz-range-thumb { width: 15px; height: 15px; border: 0; bo
 .bg-upload { align-items: center; justify-content: center; min-height: 79px; border-style: dashed; color: var(--text-3); }
 .bg-upload-ico { display: grid; place-items: center; width: 22px; height: 22px; margin-top: 7px; border-radius: 50%; background: var(--panel-solid); color: var(--blue); font-size: 17px; line-height: 1; }
 .bg-tools { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+.bg-provider { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.bg-provider span { margin-right: 3px; color: var(--text-3); font-size: calc(8px * var(--fs)); }
+.bg-provider button { height: 22px; padding: 0 8px; border-radius: 5px; color: var(--text-3); font-size: calc(8px * var(--fs)); background: var(--panel-solid); border: 1px solid var(--line); }
+.bg-provider button.active { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 36%, var(--line)); background: var(--blue-soft); }
 .bg-search { display: flex; gap: 5px; }
 .bg-search input { flex: 1; min-width: 0; height: 29px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-solid); color: var(--text); font-size: calc(9px * var(--fs)); outline: none; }
 .bg-search .btn { height: 29px; white-space: nowrap; }
@@ -1712,24 +1739,43 @@ body.focus-mode .viewport-note { display: none; }
 [data-font-scale="1.4"] .step,
 [data-font-scale="1.5"] .step { padding-top: 8px; padding-bottom: 8px; }
 
-/* Clearly visible scroll bars make it obvious that long lab pages can scroll. */
-.view { scroll-behavior: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+/* Subtle scroll indicators: visible on interaction, never dominant. */
+.view { scroll-behavior: auto; overscroll-behavior: contain; }
+.view, .data-table-wrap, .sidebar-scroll { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text-3) 18%, transparent) transparent; }
 .view::-webkit-scrollbar,
 .data-table-wrap::-webkit-scrollbar,
-.sidebar-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.sidebar-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
 .view::-webkit-scrollbar-track,
 .data-table-wrap::-webkit-scrollbar-track,
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .view::-webkit-scrollbar-thumb,
 .data-table-wrap::-webkit-scrollbar-thumb,
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  border: 3px solid transparent; border-radius: 99px;
-  background: color-mix(in srgb, var(--text-3) 46%, transparent);
+  border: 1px solid transparent; border-radius: 99px;
+  background: color-mix(in srgb, var(--text-3) 16%, transparent);
   background-clip: content-box;
 }
 .view::-webkit-scrollbar-thumb:hover,
 .data-table-wrap::-webkit-scrollbar-thumb:hover,
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text-3) 70%, transparent); background-clip: content-box; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text-3) 34%, transparent); background-clip: content-box; }
+/* Final type normalization: one coherent scale, with hierarchy. */
+body { font-size: var(--type-base); }
+.nav-item { font-size: var(--type-md); }
+.nav-sub .nav-item, .nav-count, .nav-badge, .nav-label { font-size: var(--type-xs); }
+.brand-type em, .crumb, .search-trigger, .filter-label, .filter-count { font-size: var(--type-sm); }
+.crumb strong { font-size: var(--type-md); }
+.filter-chip, .tag, .book-tag, .pill, .sub, .control-note { font-size: var(--type-sm); }
+.exp-body h3 { font-size: var(--type-md); }
+.exp-body p { font-size: var(--type-base); }
+.exp-foot .tag, .exp-foot .go { font-size: var(--type-xs); }
+.card-head h3, .guide-head h3, .viz-head h3, .section-head h2 { font-size: var(--type-md); }
+.control-top label, .control-value, .readout-label, .metric-label { font-size: var(--type-sm); }
+.readout-value, .metric-value { font-size: var(--type-lg); }
+.settings-label b, .about-card-head h2 { font-size: var(--type-md); }
+.settings-label em, .about-card p, .about-steps, .about-changelog p { font-size: var(--type-sm); }
+.about-changelog span { font-size: var(--type-xs); }
+.palette-item strong { font-size: var(--type-sm); }
+.palette-item span, .palette-foot, .palette-group-label { font-size: var(--type-xs); }
 .lab-page { padding-bottom: 130px; }
 @media (max-width: 680px) {
   .principle-banner { display: block; }

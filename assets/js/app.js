@@ -30,6 +30,7 @@
     background: U.load().background || 'mountain-lake',
     bgImage: U.load().bgImage || '',
     wallpaperApi: U.load().wallpaperApi || '',
+    wallpaperProvider: U.load().wallpaperProvider === 'wikimedia' ? 'wikimedia' : 'bing',
     paletteOpen: false, paletteIndex: 0, heroStop: null, focus: false
   };
 
@@ -116,7 +117,7 @@
       appBg.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '%22') + '")' : 'none';
     }
     syncPerformanceControls();
-    if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, wallpaperApi: state.wallpaperApi });
+    if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, wallpaperApi: state.wallpaperApi, wallpaperProvider: state.wallpaperProvider });
     if (state.currentLab) {
       state.currentLab.view.dirty = true;
       if (state.currentLab.chart) setTimeout(() => state.currentLab && state.currentLab.chart.draw(), 30);
@@ -164,28 +165,136 @@
     box.innerHTML = '<div class="bg-result-grid">' + items.slice(0, 8).map((it) => '<button class="bg-result" data-bg-url="' + U.esc(it.url) + '" title="' + U.esc(it.title || '') + '"><img src="' + U.esc(it.thumb || it.url) + '" alt=""><span>' + U.esc((it.title || '壁纸').slice(0, 28)) + '</span></button>').join('') + '</div>';
   }
 
-  async function searchWallpapers(query) {
-    const q = String(query || '').trim();
-    if (!q) { toast('请输入壁纸关键词', 'error'); return; }
-    const box = $('[data-bg-results]');
-    if (box) box.innerHTML = '<p class="bg-hint">正在搜索 Wikimedia Commons…</p>';
-    try {
-      const params = new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: q, gsrnamespace: '6', gsrlimit: '10', prop: 'imageinfo', iiprop: 'url', iiurlwidth: '1200', format: 'json', origin: '*' });
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      let res;
-      try { res = await fetch('https://commons.wikimedia.org/w/api.php?' + params.toString(), { mode: 'cors', signal: controller.signal }); }
-      finally { clearTimeout(timer); }
+  async function fetchBingWallpapers(query) {
+    if (!query) {
+      const res = await fetch('https://bing.biturl.top/?resolution=1920&format=json&index=0&mkt=zh-CN', { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const pages = data.query && data.query.pages ? Object.values(data.query.pages) : [];
-      const items = pages.map((p) => ({ title: p.title, url: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].url : '', thumb: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].thumburl : '' })).filter((x) => x.url && /\.(jpe?g|png|webp)(\?|$)/i.test(x.url));
+      const url = data.url || data.image || '';
+      if (!/^https?:/.test(url)) throw new Error('Bing 未返回图片');
+      return [{ title: data.title || data.copyright || 'Bing 每日壁纸', url, thumb: url }];
+    }
+    const bingUrl = 'https://www.bing.com/images/search?q=' + encodeURIComponent(query) + '&format=rss';
+    const proxies = [
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(bingUrl),
+      'https://corsproxy.io/?url=' + encodeURIComponent(bingUrl)
+    ];
+    let lastErr = null;
+    for (const proxy of proxies) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        let res;
+        try { res = await fetch(proxy, { signal: controller.signal }); } finally { clearTimeout(timer); }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        if (query) {
+          const doc = new DOMParser().parseFromString(text, 'text/xml');
+          const nodes = [...doc.querySelectorAll('item')];
+          const items = nodes.map((item) => {
+            const title = (item.querySelector('title') && item.querySelector('title').textContent || 'Bing 壁纸').trim();
+            const enc = item.getElementsByTagName('enclosure')[0] || item.getElementsByTagName('media:content')[0];
+            let url = enc ? enc.getAttribute('url') : '';
+            if (!url) {
+              const m = text.match(/https?:\/\/[^"'<> ]+\.(?:jpe?g|png|webp)(?:\?[^"'<> ]*)?/i);
+              if (m) url = m[0];
+            }
+            if (url && url.startsWith('/')) url = 'https://www.bing.com' + url;
+            return { title, url, thumb: url };
+          }).filter((x) => /^https?:/.test(x.url));
+          if (items.length) return items;
+        } else {
+          const data = JSON.parse(text);
+          const items = (data.images || []).map((it) => ({
+            title: it.copyright || it.title || 'Bing 每日壁纸',
+            url: 'https://www.bing.com' + it.urlbase + '_1920x1080.jpg',
+            thumb: 'https://www.bing.com' + it.urlbase + '_480x270.jpg'
+          }));
+          if (items.length) return items;
+        }
+        throw new Error('Bing 未返回图片');
+      } catch (err) { lastErr = err; }
+    }
+    throw lastErr || new Error('Bing 连接失败');
+  }
+
+  async function fetchWikimediaWallpapers(query) {
+    const params = new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: query, gsrnamespace: '6', gsrlimit: '10', prop: 'imageinfo', iiprop: 'url', iiurlwidth: '1200', format: 'json', origin: '*' });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    let res;
+    try { res = await fetch('https://commons.wikimedia.org/w/api.php?' + params.toString(), { mode: 'cors', signal: controller.signal }); }
+    finally { clearTimeout(timer); }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const pages = data.query && data.query.pages ? Object.values(data.query.pages) : [];
+    return pages.map((p) => ({ title: p.title, url: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].url : '', thumb: p.imageinfo && p.imageinfo[0] ? p.imageinfo[0].thumburl : '' })).filter((x) => x.url && /\.(jpe?g|png|webp)(\?|$)/i.test(x.url));
+  }
+
+  async function searchWallpapers(query) {
+    const q = String(query || '').trim();
+    const box = $('[data-bg-results]');
+    if (!q && state.wallpaperProvider === 'wikimedia') { toast('请输入壁纸关键词', 'error'); return; }
+    if (box) box.innerHTML = '<p class="bg-hint">正在搜索 ' + (state.wallpaperProvider === 'bing' ? 'Bing.com' : 'Wikimedia Commons') + '…</p>';
+    try {
+      let items = state.wallpaperProvider === 'bing'
+        ? await fetchBingWallpapers(q)
+        : await fetchWikimediaWallpapers(q);
       bgResultsHTML(items);
       if (!items.length) toast('没有找到图片，换一个关键词试试', 'error');
     } catch (err) {
+      if (state.wallpaperProvider === 'bing' && q) {
+        try {
+          const items = await fetchWikimediaWallpapers(q);
+          bgResultsHTML(items);
+          if (box) box.insertAdjacentHTML('afterbegin', '<p class="bg-hint">Bing 连接失败，已自动切换到 Wikimedia 结果。</p>');
+          return;
+        } catch (e2) { /* show original Bing error below */ }
+      }
       if (box) box.innerHTML = '<p class="bg-hint">联网搜索失败：' + U.esc(err.message) + '。请检查网络，或使用上传图片 / 桌面 API。</p>';
       toast('壁纸搜索失败', 'error');
     }
+  }
+
+  async function discoverWallpaperApi() {
+    const candidates = [
+      'http://127.0.0.1:17890/wallpaper',
+      'http://127.0.0.1:17890/api/wallpaper',
+      'http://127.0.0.1:17600/wallpaper',
+      'http://127.0.0.1:8765/wallpaper',
+      'http://127.0.0.1:12345/wallpaper',
+      'http://localhost:17890/wallpaper'
+    ];
+    if (window.prismWallpaper && typeof window.prismWallpaper.get === 'function') {
+      try {
+        const result = await window.prismWallpaper.get({ candidates });
+        const url = typeof result === 'string' ? result : result && (result.url || result.image);
+        if (url) { setBackground(url, true); toast('已读取系统壁纸 API'); return; }
+      } catch (e) { /* continue */ }
+    }
+    for (const endpoint of candidates) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 1200);
+        let res;
+        try { res = await fetch(endpoint, { signal: controller.signal, headers: { Accept: 'application/json' } }); }
+        finally { clearTimeout(timer); }
+        if (!res.ok) continue;
+        const data = await res.json();
+        const url = typeof data === 'string' ? data : (data.url || data.image || data.imageUrl || data.wallpaper || (Array.isArray(data.urls) ? data.urls[0] : ''));
+        if (url && /^(https?:|data:image\/)/.test(url)) {
+          state.wallpaperApi = endpoint;
+          const input = $('[data-wallpaper-api]');
+          if (input) input.value = endpoint;
+          setBackground(url, true);
+          toast('已找到系统壁纸 API：' + endpoint);
+          return;
+        }
+      } catch (e) { /* try next */ }
+    }
+    toast('未发现本机壁纸 API，请填写接口地址', 'error');
+    const box = $('[data-bg-results]');
+    if (box) box.innerHTML = '<p class="bg-hint">未发现自动 API。请在地址栏填写桌面壁纸软件的 HTTP API，或让软件通过 <code>window.prismWallpaper.get()</code> 提供图片 URL。</p>';
   }
 
   async function syncDesktopWallpaper() {
@@ -232,6 +341,7 @@
     });
     $$('[data-bg-id]').forEach((b) => b.classList.toggle('active', !state.bgImage && b.dataset.bgId === state.background));
     $$('[data-bg-custom]').forEach((b) => b.classList.toggle('active', !!state.bgImage && b.dataset.bgCustom === 'upload'));
+    $$('[data-bg-provider]').forEach((b) => b.classList.toggle('active', b.dataset.bgProvider === state.wallpaperProvider));
     const api = $('[data-wallpaper-api]');
     if (api && document.activeElement !== api) api.value = state.wallpaperApi || '';
   }
@@ -247,9 +357,10 @@
       '</div></div>' +
       '<div class="settings-block bg-block"><div class="settings-label"><span><b>软件背景</b><em>内置自然与科学图片 · 支持上传、联网搜索和桌面壁纸 API</em></span><span class="pill">' + (state.bgImage ? '自定义' : (BACKGROUNDS.find((b) => b.id === state.background) || BACKGROUNDS[0]).name) + '</span></div>' +
       '<div class="bg-grid">' + cards + '<button class="bg-choice bg-upload' + (state.bgImage ? ' active' : '') + '" data-bg-upload><span class="bg-upload-ico">+</span><span>上传图片</span><em>从本机选择</em></button></div>' +
-      '<div class="bg-tools"><div class="bg-search"><input type="text" placeholder="联网搜索壁纸，如：星云 / 森林 / 实验室" data-bg-query><button class="btn ghost small" data-bg-search>联网搜索</button></div>' +
-      '<div class="bg-search"><input type="text" placeholder="桌面壁纸 API 地址，如 http://127.0.0.1:17890/wallpaper" data-wallpaper-api><button class="btn ghost small" data-wallpaper-sync>同步桌面壁纸</button></div></div>' +
-      '<div class="bg-results" data-bg-results><p class="bg-hint">联网搜索使用 Wikimedia Commons；桌面 API 需返回 <code>{ "url": "..." }</code> 或图片地址数组。自定义图片会压缩后保存在本机。</p></div>' +
+      '<div class="bg-tools"><div class="bg-provider"><span>搜索来源</span><button data-bg-provider="bing" class="active">Bing</button><button data-bg-provider="wikimedia">Wikimedia</button></div>' +
+      '<div class="bg-search"><input type="text" placeholder="搜索 Bing 壁纸，如：星云 / 森林 / 实验室" data-bg-query><button class="btn ghost small" data-bg-search>联网搜索</button></div>' +
+      '<div class="bg-search"><input type="text" placeholder="桌面壁纸 API 地址，或点击自动查找" data-wallpaper-api><button class="btn ghost small" data-wallpaper-sync>同步</button><button class="btn ghost small" data-wallpaper-discover>自动查找</button></div></div>' +
+      '<div class="bg-results" data-bg-results><p class="bg-hint">留空搜索 Bing 每日壁纸；输入关键词联网搜索，Bing 失败时自动回退 Wikimedia。桌面 API 需返回 <code>{ "url": "..." }</code> 或图片地址数组。</p></div>' +
       '<div class="bg-credit">内置图片来自 Unsplash，仅用于界面背景；可在设置中随时切换或清除。</div>' +
       '<button class="btn ghost small" data-bg-clear>恢复默认背景</button>' +
       '</div>' +
@@ -595,10 +706,7 @@
     const done = U.isDone(e.id);
     const thumb = 'assets/img/thumbs/' + e.id + '.jpg';
     return '<button class="exp-card" data-lab="' + e.id + '" data-thumb="' + thumb + '" draggable="true" title="点击打开 · 拖动到 PowerPoint / WPS 生成实验链接" style="--accent:' + (e.accent || cat.color) + '">' +
-      '<span class="exp-art"><span class="art-label">' + U.esc(cat.en) + '</span><span class="exp-icon">' + OL.icon(e.icon) + '</span>' +
-      '<img class="exp-thumb" src="' + thumb + '" alt="' + U.esc(e.title) + '" onerror="this.remove()">' +
-      '<span class="exp-num">' + pad(e.n || 0) + '</span>' +
-      (done ? '<span class="done-mark">' + ui('check') + '</span>' : '') + '</span>' +
+      '<span class="exp-art"><img class="exp-thumb" src="' + thumb + '" alt="' + U.esc(e.title) + '" decoding="async" onerror="this.remove()"></span>' +
       '<span class="exp-body"><h3>' + U.esc(e.title) + '</h3><p>' + U.esc(e.short) + '</p>' +
       '<span class="exp-foot"><span class="tag">' + U.esc(e.difficulty || '基础') + '</span><span class="dotsep"></span><span class="tag">' + U.esc(e.time || '8 分钟') + '</span>' +
       (book ? '<span class="tag book-tag">' + U.esc(book.short) + '</span>' : '') +
@@ -923,25 +1031,25 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.0</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.1</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.6.0</strong><span>2026-11-15</span></div>' +
-      '<p>当前版本聚焦视觉性能、背景系统、实验缩略图、关于页与 PowerPoint / WPS 联动。</p>' +
+      '<div class="about-version-row"><strong>0.6.1</strong><span>2026-11-15</span></div>' +
+      '<p>当前版本聚焦字体层级、实验缩略图、滚动条、渲染性能与 Bing 壁纸搜索。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.6.0</b><span>2026-11-15</span><p>性能与背景设置、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 链接联动。</p></div>' +
-      '<div><b>0.5.0</b><span>2026-11-15</span><p>按《实验总结》对齐 22 个实验，新增 7 个实验的方案切换、等温气体实验和模块化工坊。</p></div>' +
-      '<div><b>0.4.2</b><span>2026-11-14</span><p>运动实验连续运行、播放中参数平滑过渡、侧边栏收起和实验左右切换。</p></div></div></section>' +
+      '<div class="about-changelog"><div><b>0.6.1</b><span>2026-11-15</span><p>统一字体层级、放大无文字缩略图、细腻滚动条、渲染性能优化、Bing 默认壁纸搜索与系统 API 自动查找。</p></div>' +
+      '<div><b>0.6.0</b><span>2026-11-15</span><p>性能与背景设置、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 链接联动。</p></div>' +
+      '<div><b>0.5.0</b><span>2026-11-15</span><p>按《实验总结》对齐 22 个实验，新增 7 个实验的方案切换、等温气体实验和模块化工坊。</p></div></div></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>BSD 3-Clause License</h2><span class="pill">LICENSE</span></div>' +
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.0-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.1-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '</div></div>';
   }
 
@@ -1196,6 +1304,7 @@
     let lastReadout = 0, lastChart = 0, lastTable = 0;
     function loop(now) {
       if (!cur.alive || state.currentLab !== cur) return;
+      if (document.hidden) { cur.raf = requestAnimationFrame(loop); return; }
       const dt = Math.min(0.04, Math.max(0, (now - cur.view.lastTs) / 1000)) * (state.animSpeed || 1);
       cur.view.lastTs = now;
       if (easeLabState(cur, now)) cur.view.dirty = true;
@@ -1683,6 +1792,9 @@
     if (e.target.closest('[data-bg-upload]')) { const f = $('[data-bg-file]'); if (f) f.click(); return; }
     if (e.target.closest('[data-bg-clear]')) { setBackground('mountain-lake', false); toast('已恢复默认背景'); return; }
     if (e.target.closest('[data-bg-search]')) { const q = $('[data-bg-query]'); searchWallpapers(q ? q.value : ''); return; }
+    if (e.target.closest('[data-wallpaper-discover]')) { discoverWallpaperApi(); return; }
+    const provider = e.target.closest('[data-bg-provider]');
+    if (provider) { state.wallpaperProvider = provider.dataset.bgProvider === 'wikimedia' ? 'wikimedia' : 'bing'; applyPerformance(true); toast(state.wallpaperProvider === 'bing' ? '壁纸搜索来源：Bing' : '壁纸搜索来源：Wikimedia'); return; }
     if (e.target.closest('[data-wallpaper-sync]')) { syncDesktopWallpaper(); return; }
     const remote = e.target.closest('[data-bg-url]');
     if (remote) { setBackground(remote.dataset.bgUrl, true); toast('背景已应用'); return; }

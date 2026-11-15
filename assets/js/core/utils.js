@@ -140,12 +140,13 @@
     const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const bw = Math.round(w * dpr), bh = Math.round(h * dpr);
-    if (canvas.width !== bw || canvas.height !== bh) {
+    const resized = canvas.width !== bw || canvas.height !== bh;
+    if (resized) {
       canvas.width = bw; canvas.height = bh;
     }
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if ('imageSmoothingEnabled' in ctx) {
+    if (resized && 'imageSmoothingEnabled' in ctx) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
     }
