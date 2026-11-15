@@ -8,6 +8,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.5.0-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
 
 ![Prism overview](assets/img/preview.png)
@@ -346,7 +347,9 @@ prism-physics-lab/
 
 ## License
 
-本项目为教学演示项目，可自由用于课堂、社团与个人学习。第三方字体与图标主要使用系统字体 / 内联 SVG；LaTeX 公式渲染使用本地打包的 **KaTeX 0.16.22**（MIT License，见 `assets/vendor/katex/LICENSE`），不依赖 CDN。
+本项目采用 **BSD 3-Clause License**，完整条款见 [LICENSE](LICENSE)。可自由用于课堂、社团与个人学习，但再分发时需保留版权声明、许可证条款和免责声明，且不得未经许可使用作者名义为衍生作品背书。
+
+第三方字体与图标主要使用系统字体 / 内联 SVG；LaTeX 公式渲染使用本地打包的 **KaTeX 0.16.22**，其许可证为 **MIT License**（见 `assets/vendor/katex/LICENSE`），不依赖 CDN。
 
 ---
 
@@ -660,4 +663,6 @@ Uses `Canvas 2D`, `ResizeObserver`, `backdrop-filter` and `localStorage`. Browse
 
 ## License
 
-This is a teaching/demo project, free to use in classrooms, clubs and personal study. Third-party fonts and icons are mostly system fonts or inline SVG. LaTeX rendering uses a locally bundled **KaTeX 0.16.22** (MIT License, see `assets/vendor/katex/LICENSE`); no CDN is used at runtime.
+This project is released under the **BSD 3-Clause License**; see [LICENSE](LICENSE) for the full text. You may use it in classrooms, clubs and personal study, provided that redistributions retain the copyright notice, license conditions and disclaimer, and that the authors' names are not used to endorse derived products without permission.
+
+Third-party fonts and icons are mostly system fonts or inline SVG. LaTeX rendering uses a locally bundled **KaTeX 0.16.22** under the **MIT License** (see `assets/vendor/katex/LICENSE`); no CDN is used at runtime.
