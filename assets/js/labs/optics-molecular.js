@@ -488,4 +488,125 @@
       return '<b>结论：</b>把油膜视为单分子层，油酸分子的直径 d = V/S ≈ <b>' + U.fmt(q.d_nm, 2) + ' nm</b>（' + U.sci(q.d_nm * 1e-9, 1) + ' m），与分子直径的数量级 10⁻¹⁰ m 相符。';
     }
   });
+  /* ------------------------------------------------------------
+     22 · 探究等温条件下气体压强与体积的关系
+     ------------------------------------------------------------ */
+  OL.registerLab({
+    id: 'gas-law',
+    live: false,
+    playable: false,
+    hint: '缓慢改变体积 · 读取压强 · 作 p–V 与 p–1/V 图像',
+    init(state) { state._phase = 0; },
+    _p(state) { return state.n * 8.314 * state.T / state.V; },
+    draw(ctx, w, h, state, view) {
+      C.grid(ctx, w, h, { step: 34 });
+      const f = K.frame(ctx, w, h);
+      const p = this._p(state);
+      const inv = 1000 / state.V;
+      const bx = 188, by = 238, bw = 470, bh = 92;
+      const pistonX = bx + 24 + (state.V - 20) / 80 * (bw - 58);
+
+      K.panel(ctx, 42, 38, 486, 150, { fill: 'rgba(9,15,26,.48)', stroke: 'rgba(255,255,255,.06)' });
+      C.label(ctx, '玻意耳定律 · 等温过程', 60, 64, { size: 9.5, color: 'rgba(230,240,255,.44)' });
+      C.label(ctx, 'pV = nRT = 恒量', 60, 104, { size: 24, color: '#eef4ff', mono: true, weight: 600 });
+      C.label(ctx, '缓慢改变体积，保持温度不变', 60, 132, { size: 8.5, color: 'rgba(230,240,255,.32)' });
+      C.label(ctx, 'p = ' + U.fmt(p, 1) + ' kPa', 60, 162, { size: 10, color: '#7dff9e', mono: true });
+
+      // pressure gauge
+      K.panel(ctx, 566, 38, 286, 150, { fill: 'rgba(10,17,30,.62)' });
+      C.label(ctx, '压力表', 586, 62, { size: 9, color: 'rgba(230,240,255,.4)' });
+      const gx = 704, gy = 114, gr = 43;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(8,15,24,.85)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(160,220,190,.35)'; ctx.lineWidth = 2; ctx.stroke();
+      for (let i = 0; i <= 10; i++) {
+        const a = Math.PI * 0.8 + i / 10 * Math.PI * 1.4;
+        const r1 = gr - 6, r2 = gr - 1;
+        C.line(ctx, gx + Math.cos(a) * r1, gy + Math.sin(a) * r1, gx + Math.cos(a) * r2, gy + Math.sin(a) * r2, 'rgba(180,230,205,.45)', 1);
+      }
+      const na = Math.PI * 0.8 + U.clamp(p / 300, 0, 1) * Math.PI * 1.4;
+      C.line(ctx, gx, gy, gx + Math.cos(na) * (gr - 9), gy + Math.sin(na) * (gr - 9), '#7dff9e', 2);
+      C.dot(ctx, gx, gy, 3, '#7dff9e');
+      C.label(ctx, U.fmt(p, 1) + ' kPa', gx, gy + 61, { size: 10, color: '#7dff9e', align: 'center', mono: true });
+      ctx.restore();
+
+      // syringe
+      K.panel(ctx, 40, 202, 824, 196, { fill: 'rgba(8,14,24,.38)', stroke: 'rgba(255,255,255,.06)' });
+      C.label(ctx, '注射器 · 封闭空气柱', 58, 226, { size: 9.5, color: 'rgba(230,240,255,.42)' });
+      C.label(ctx, 'V = ' + U.fmt(state.V, 0) + ' mL', 58, 247, { size: 8.5, color: '#7dff9e', mono: true });
+      ctx.save();
+      C.fillRound(ctx, bx, by, bw, bh, 18, 'rgba(205,225,245,.08)');
+      ctx.strokeStyle = 'rgba(210,235,255,.35)'; ctx.lineWidth = 2;
+      C.roundRect(ctx, bx, by, bw, bh, 18); ctx.stroke();
+      // gas column
+      const gasW = Math.max(18, pistonX - bx - 2);
+      const grad = ctx.createLinearGradient(bx, by, bx + gasW, by + bh);
+      grad.addColorStop(0, 'rgba(48,209,88,.06)'); grad.addColorStop(1, 'rgba(48,209,88,.22)');
+      ctx.fillStyle = grad;
+      C.roundRect(ctx, bx + 2, by + 2, gasW, bh - 4, 14); ctx.fill();
+      for (let i = 0; i < 34; i++) {
+        const a = i * 2.399 + (state._phase || 0);
+        const px = bx + 10 + (Math.sin(a * 2.1) * .5 + .5) * Math.max(4, gasW - 20);
+        const py = by + 10 + (Math.cos(a * 1.7) * .5 + .5) * (bh - 20);
+        C.dot(ctx, px, py, 1.5, i % 3 ? 'rgba(160,255,185,.5)' : 'rgba(255,255,255,.55)');
+      }
+      // piston
+      C.fillRound(ctx, pistonX, by + 8, 18, bh - 16, 5, 'rgba(205,225,245,.8)');
+      C.fillRound(ctx, pistonX + 18, by + 32, 52, 28, 5, 'rgba(150,180,215,.45)');
+      C.line(ctx, pistonX + 70, by + 46, bx + bw - 18, by + 46, 'rgba(205,225,245,.45)', 5);
+      C.label(ctx, '柱塞', pistonX + 33, by + 82, { size: 8, color: 'rgba(230,240,255,.4)', align: 'center' });
+      // scale
+      for (let i = 0; i <= 8; i++) {
+        const x = bx + 24 + i / 8 * (bw - 58);
+        C.line(ctx, x, by + bh + 5, x, by + bh + 11, 'rgba(180,215,245,.26)', 1);
+        if (i % 2 === 0) C.label(ctx, (20 + i * 10) + '', x, by + bh + 23, { size: 7, color: 'rgba(180,215,245,.3)', align: 'center', mono: true });
+      }
+      C.label(ctx, 'V / mL', bx + bw / 2, by + bh + 38, { size: 8, color: 'rgba(180,215,245,.3)', align: 'center' });
+      C.label(ctx, 'T = ' + U.fmt(state.T, 0) + ' K  ·  n = ' + U.fmt(state.n, 1) + ' mmol', 620, 414, { size: 8.5, color: 'rgba(230,240,255,.35)', align: 'right' });
+      C.label(ctx, '1/V = ' + U.fmt(inv, 2) + ' L⁻¹', 620, 432, { size: 8.5, color: 'rgba(125,255,158,.6)', align: 'right', mono: true });
+      ctx.restore();
+    },
+    readouts(state) {
+      const p = this._p(state);
+      return [
+        K.readout('压强 p', U.fmt(p, 1), 'kPa'),
+        K.readout('体积 V', U.fmt(state.V, 0), 'mL'),
+        K.readout('pV', U.fmt(p * state.V / 1000, 1), 'J'),
+        K.readout('1/V', U.fmt(1000 / state.V, 2), 'L⁻¹')
+      ];
+    },
+    sample(state) {
+      const p = this._p(state);
+      return { V: state.V, p: p, invV: 1000 / state.V, T: state.T, n: state.n };
+    },
+    columns: [
+      { key: 'V', label: 'V', unit: 'mL', decimals: 0 },
+      { key: 'p', label: 'p', unit: 'kPa', decimals: 1 },
+      { key: 'invV', label: '1/V', unit: 'L⁻¹', decimals: 2 },
+      { key: 'T', label: 'T', unit: 'K', decimals: 0 }
+    ],
+    plot(state, view) {
+      const inv = state.chartMode === 'inv';
+      const pts = [];
+      for (let i = 0; i <= 90; i++) {
+        const V = 20 + i / 90 * 80;
+        const p = state.n * 8.314 * state.T / V;
+        pts.push({ x: inv ? 1000 / V : V, y: p });
+      }
+      const data = view.records.map((r) => ({ x: inv ? r.invV : r.V, y: r.p }));
+      return {
+        xLabel: inv ? '1/V' : '体积 V', yLabel: '压强 p', xUnit: inv ? 'L⁻¹' : 'mL', yUnit: 'kPa',
+        xMin: inv ? 10 : 20, xMax: inv ? 50 : 100, yMin: 0,
+        series: [
+          K.series(pts, '等温线', '#30d158', { width: 2 }),
+          K.scatter(data, 'x', 'y', '测量点', '#7dff9e', { pointSize: 4 })
+        ]
+      };
+    },
+    conclusion(state) {
+      const p = this._p(state);
+      return '<b>结论：</b>当前 p = <b>' + U.fmt(p, 1) + ' kPa</b>、V = <b>' + U.fmt(state.V, 0) + ' mL</b>，pV ≈ <b>' + U.fmt(p * state.V / 1000, 1) + ' J</b>。等温条件下 p 与 V 成反比，p–1/V 图像是一条过原点的直线。';
+    }
+  });
 })();

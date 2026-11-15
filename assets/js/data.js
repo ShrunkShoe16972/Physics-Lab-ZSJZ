@@ -59,7 +59,8 @@
     capacitor: '<path d="M9 13v22M39 13v22"/><path d="M15 13v22M33 13v22"/><path d="M19 17h10M19 22h10M19 27h10M19 32h10" stroke-dasharray="2 4" opacity=".6"/><path d="M2 24h7M39 24h7"/><path d="M9 17h-4M9 22h-4M39 17h4M39 22h4" opacity=".6"/>',
     prism: '<path d="M24 7 42 39H6L24 7Z"/><path d="M2 30h15"/><path d="m17 30 7-5 7 5"/><path d="m31 30 15-7M31 30l15 3M31 30l14 9" opacity=".65"/>',
     wave: '<path d="M4 17c4-8 8-8 12 0s8 8 12 0 8-8 12 0M4 31c4-8 8-8 12 0s8 8 12 0 8-8 12 0"/><path d="M24 5v38" stroke-dasharray="2 4" opacity=".4"/>',
-    droplet: '<path d="M24 5c6 9 11 14 11 21a11 11 0 0 1-22 0c0-7 5-12 11-21Z"/><path d="M6 39c6-3 11-3 18 0s12 3 18 0" stroke-dasharray="3 4"/><circle cx="24" cy="27" r="5" opacity=".45"/>'
+    droplet: '<path d="M24 5c6 9 11 14 11 21a11 11 0 0 1-22 0c0-7 5-12 11-21Z"/><path d="M6 39c6-3 11-3 18 0s12 3 18 0" stroke-dasharray="3 4"/><circle cx="24" cy="27" r="5" opacity=".45"/>',
+    cylinder: '<path d="M13 9h22v4a22 7 0 0 1-22 0V9Z"/><path d="M13 13v26a22 7 0 0 0 22 0V13"/><path d="M18 20h12M18 26h12M18 32h12" opacity=".55"/>'
   };
 
   function icon(name, cls) {
@@ -68,7 +69,7 @@
 
   const experiments = [
     {
-      n: 1, id: 'accelerated-motion', title: '研究匀变速直线运动',
+      n: 1, id: 'accelerated-motion', title: '探究匀变速直线运动的规律',
       short: '让小车匀加速滑行，用打点计时器还原速度—时间图像。',
       category: 'mechanics', accent: '#0a84ff', icon: 'tape',
       difficulty: '基础', time: '8 分钟', tags: ['打点计时器', 'v–t 图像'],
@@ -82,7 +83,7 @@
       ]
     },
     {
-      n: 2, id: 'hooke-law', title: '探究弹力与弹簧伸长量的关系',
+      n: 2, id: 'hooke-law', title: '探究弹力与形变量的关系',
       short: '改变钩码质量，寻找弹簧弹力与伸长量之间的线性关系。',
       category: 'mechanics', accent: '#0a84ff', icon: 'spring',
       difficulty: '基础', time: '7 分钟', tags: ['胡克定律', 'F–x 图像'],
@@ -123,7 +124,7 @@
       ]
     },
     {
-      n: 4, id: 'newton-second', title: '探究加速度与力、质量的关系',
+      n: 4, id: 'newton-second', title: '探究加速度与合外力、质量的关系',
       short: '控制变量，分别寻找 a–F 与 a–1/m 的线性关系。',
       category: 'mechanics', accent: '#0a84ff', icon: 'cart',
       difficulty: '进阶', time: '12 分钟', tags: ['控制变量', '牛顿第二定律'],
@@ -139,7 +140,7 @@
       ]
     },
     {
-      n: 5, id: 'projectile', title: '研究平抛运动',
+      n: 5, id: 'projectile', title: '探究平抛运动的规律',
       short: '从不同高度水平抛出小球，拆解水平与竖直方向的运动。',
       category: 'mechanics', accent: '#0a84ff', icon: 'parabola',
       difficulty: '进阶', time: '9 分钟', tags: ['运动分解', '轨迹'],
@@ -154,7 +155,7 @@
       ]
     },
     {
-      n: 6, id: 'centripetal', title: '探究向心力的大小',
+      n: 6, id: 'centripetal', title: '探究向心力大小的影响因素',
       short: '旋转小球，观察向心力如何随质量、半径和角速度变化。',
       category: 'mechanics', accent: '#0a84ff', icon: 'orbit',
       difficulty: '进阶', time: '10 分钟', tags: ['圆周运动', '向心力'],
@@ -219,7 +220,7 @@
       ]
     },
     {
-      n: 10, id: 'simple-pendulum', title: '用单摆测量重力加速度',
+      n: 10, id: 'simple-pendulum', title: '利用单摆测重力加速度',
       short: '测量不同摆长的周期，用 T²–L 图像求出当地重力加速度。',
       category: 'mechanics', accent: '#0a84ff', icon: 'clock',
       difficulty: '基础', time: '9 分钟', tags: ['单摆', 'T²–L 图像'],
@@ -412,28 +413,28 @@
       ]
     },
     {
-      n: 19, id: 'refraction', title: '测量玻璃的折射率',
+      n: 19, id: 'refraction', title: '“插针法”测量玻璃砖的折射率',
       short: '用插针法追踪光线穿过玻璃砖，由折射角求折射率。',
       category: 'optics', accent: '#bf5af2', icon: 'prism',
       difficulty: '进阶', time: '10 分钟', tags: ['折射定律', '插针法'],
-      description: '光线从空气斜射入半圆形玻璃砖，入射角 i 与折射角 r 满足斯涅尔定律。作 sin i–sin r 图像，斜率即折射率。',
+      description: '用插针法确定入射光线和出射光线，量出入射角 i 与折射角 r。作 sin i–sin r 图像，斜率即玻璃砖的折射率。',
       formula: 'n = sin i / sin r', formulaNote: '光从空气进入玻璃时，折射角小于入射角；sin i–sin r 图线为过原点的直线。',
       principle: '折射定律指出，入射角与折射角的正弦之比为常数，该常数等于两种介质的相对折射率。',
-      steps: ['在白纸上画出玻璃砖界面', '从一侧插针确定入射光线', '从另一侧观察并插针确定出射光线', '量角并绘制 sin i–sin r 图像'],
+      steps: ['在白纸上画界面 aa′ 和法线，确定入射点 O', '沿 AO 插 P₁、P₂ 两根大头针', '放上玻璃砖，画出另一侧界面 bb′', '在 bb′ 一侧插 P₃、P₄，使它们挡住前面的像', '移去玻璃砖，连接 OO′ 确定出射光线', '量出入射角 i 和折射角 r', '计算 n = sin i/sin r，或作 sin i–sin r 图像求斜率'],
       controls: [
         { key: 'i', label: '入射角 i', min: 5, max: 80, step: 1, value: 40, unit: '°', decimals: 0 },
         { key: 'n', label: '玻璃折射率 n', min: 1.3, max: 1.9, step: 0.01, value: 1.5, unit: '', decimals: 2 }
       ]
     },
     {
-      n: 20, id: 'double-slit', title: '用双缝干涉测光的波长',
+      n: 20, id: 'double-slit', title: '利用双缝干涉测定光的波长',
       short: '调节双缝间距与屏距，从干涉条纹间距反推光的波长。',
       category: 'optics', accent: '#bf5af2', icon: 'wave',
       difficulty: '进阶', time: '11 分钟', tags: ['双缝干涉', '波长'],
       description: '单色光通过双缝后在屏上形成明暗相间的干涉条纹。测量相邻亮纹间距 Δx、双缝间距 d 与屏距 L，可计算波长。',
       formula: 'Δx = λL/d ⇒ λ = Δx·d/L', formulaNote: '条纹间距与波长、屏距成正比，与双缝间距成反比。',
       principle: '两束相干光在屏上叠加，光程差为波长整数倍处形成亮纹，半波长奇数倍处形成暗纹。',
-      steps: ['调节单缝与双缝平行', '安装测量头并观察干涉条纹', '测量 n 个亮纹间距求平均值', '代入公式计算光的波长'],
+      steps: ['把光源、遮光筒、毛玻璃屏依次安装在光具座上', '安装单缝和双缝，使缝平行且位于遮光筒轴线', '放上滤光片，观察单色光的干涉条纹', '用测量头测出 n 条亮纹间的距离 a，求 Δx=a/(n−1)', '用刻度尺测双缝到屏的距离 L，代入 λ=Δx·d/L', '重复测量并求波长的平均值'],
       controls: [
         { key: 'lambda', label: '光的波长 λ', min: 380, max: 750, step: 1, value: 550, unit: 'nm', decimals: 0 },
         { key: 'd', label: '双缝间距 d', min: 0.1, max: 0.8, step: 0.01, value: 0.25, unit: 'mm', decimals: 2 },
@@ -441,23 +442,40 @@
       ]
     },
     {
-      n: 21, id: 'oil-film', title: '用油膜法估测分子的大小',
+      n: 21, id: 'oil-film', title: '“油膜法”测油酸分子直径',
       short: '让一滴油在水面铺成单分子层，用面积反推分子直径。',
       category: 'molecular', accent: '#30d158', icon: 'droplet',
       difficulty: '进阶', time: '12 分钟', tags: ['油膜法', '分子尺度'],
       description: '将已知体积的油酸酒精溶液滴在水面，酒精溶于水，油酸铺展成单分子油膜。测量油膜面积，即可估算油酸分子的直径。',
-      formula: 'd = V/S', formulaNote: '把油膜看作单分子层，分子直径等于油酸体积除以油膜面积。',
+      formula: 'd = V/S', formulaNote: '把油膜看作单分子层，分子直径等于纯油酸体积除以油膜面积。',
       principle: '油酸分子一端亲水、一端疏水，会在水面形成单分子层。这是把宏观测量延伸到微观尺度的经典方法。',
-      steps: ['配制已知浓度的油酸酒精溶液', '用滴管测出一滴溶液的体积', '将一滴溶液滴入撒有爽身粉的水面', '描绘油膜轮廓并估算面积'],
+      steps: ['用注射器或滴管测出一滴溶液的体积和滴数', '向容器中倒入约 2 cm 深的水，均匀撒上痱子粉', '滴入一滴溶液，待油膜稳定后描绘轮廓', '用坐标方格计算油膜面积 S', '由 d = V/S 估算油酸分子直径'],
       controls: [
         { key: 'V', label: '一滴溶液体积 V', min: 0.005, max: 0.05, step: 0.001, value: 0.02, unit: 'mL', decimals: 3 },
         { key: 'c', label: '油酸浓度', min: 0.05, max: 0.5, step: 0.01, value: 0.1, unit: '%', decimals: 2 },
         { key: 'A', label: '油膜面积 S', min: 100, max: 400, step: 5, value: 200, unit: 'cm²', decimals: 0 }
       ]
+    },
+    {
+      n: 22, id: 'gas-law', title: '探究等温条件下气体压强与体积的关系',
+      short: '缓慢改变注射器中封闭空气柱的体积，验证 pV 为恒量。',
+      category: 'molecular', accent: '#30d158', icon: 'cylinder',
+      difficulty: '进阶', time: '10 分钟', tags: ['玻意耳定律', 'p–V 图像'],
+      description: '用注射器封闭一段空气柱，缓慢改变体积并读取压强，作 p–V 与 p–1/V 图像，验证等温条件下压强与体积成反比。',
+      formula: 'pV = nRT = C', formulaTex: 'pV = nRT = C',
+      formulaNote: '一定质量的某种气体，在温度不变时，压强与体积的乘积为恒量，即 p 与 1/V 成正比。',
+      principle: '一定质量的理想气体在温度不变时，压强与体积成反比。缓慢改变体积，使气体有充分时间与外界交换热量，保持温度不变。',
+      steps: ['安装注射器、橡胶套和压力表，封闭一段空气柱', '读取空气柱长度 l 和压强 p，由 V=lS 求体积', '缓慢向下压或向上拉柱塞，记录多组 p、V', '作 p–V 图像和 p–1/V 图像', '由 p–1/V 图线为过原点直线验证玻意耳定律'],
+      controls: [
+        { key: 'V', label: '空气柱体积 V', min: 20, max: 100, step: 1, value: 50, unit: 'mL', decimals: 0 },
+        { key: 'T', label: '气体温度 T', min: 250, max: 350, step: 1, value: 300, unit: 'K', decimals: 0 },
+        { key: 'n', label: '气体物质的量 n', min: 1, max: 5, step: 0.5, value: 3, unit: 'mmol', decimals: 1 },
+        { key: 'chartMode', label: '图像', type: 'segmented', options: [{ label: 'p–V', value: 'pv' }, { label: 'p–1/V', value: 'inv' }], value: 'pv' }
+      ]
     }
   ];
 
-  /* 21 个实验的册次归属；仅用于“按教材”浏览筛选。 */
+  /* 22 个实验的册次归属；仅用于“按教材”浏览筛选。 */
   const bookByExp = {
     'accelerated-motion': 'b1',
     'hooke-law': 'b1',
@@ -479,7 +497,8 @@
     'capacitor': 'b3',
     'refraction': 'x1',
     'double-slit': 'x1',
-    'oil-film': 'x3'
+    'oil-film': 'x3',
+    'gas-law': 'x3'
   };
   experiments.forEach(function (e) { e.book = bookByExp[e.id] || 'b1'; });
 
@@ -504,7 +523,8 @@
     'capacitor': 'C = \\frac{\\varepsilon_0\\varepsilon_r S}{d},\\quad Q = CU,\\quad E = \\frac{U}{d}',
     'refraction': 'n = \\frac{\\sin i}{\\sin r}',
     'double-slit': '\\Delta x = \\frac{\\lambda L}{d} \\Rightarrow \\lambda = \\frac{\\Delta x\\,d}{L}',
-    'oil-film': 'd = \\frac{V}{S}'
+    'oil-film': 'd = \\frac{V}{S}',
+    'gas-law': 'pV = nRT = C'
   };
   const errorTexById = {
     'resistivity': {
@@ -547,6 +567,132 @@
           if (et.cases[i]) c.tex = et.cases[i];
         });
       }
+    }
+  });
+
+  /* 同一实验的多种教材方案；有 2 个以上方案时显示方案切换 dock。 */
+  const schemesById = {
+    'accelerated-motion': [
+      {
+        title: '方案一 · 打点计时器', short: '打点计时器',
+        formula: 'Δx = aT²', formulaTex: '\\Delta x = aT^2',
+        principle: '打点计时器使用 50 Hz 交变电源，每 0.02 s 打一个点；纸带上相邻计数点的时间间隔由所取计数点决定。',
+        formulaNote: '若连续相等时间 T 内的位移差 Δx 为恒量，则小车做匀变速直线运动；可用逐差法或 v–t 图像求加速度。',
+        steps: ['固定打点计时器、纸带、小车、细绳和重物', '先接通电源，稳定后释放小车', '重复实验获得多条纸带', '用逐差法或 v–t 图像求加速度']
+      },
+      {
+        title: '方案二 · 光电门', short: '光电门',
+        formula: 'v = d/t ，  a = (v₂² − v₁²)/(2L)', formulaTex: 'v = \\frac{d}{t},\\quad a = \\frac{v_2^2 - v_1^2}{2L}',
+        principle: '用遮光片通过光电门的平均速度代替瞬时速度；两光电门间距为 L，分别测出通过两个光电门的速度。',
+        formulaNote: '遮光片宽度 d 要窄，释放点离第一个光电门远一些，两光电门间距尽量大，以减小测量误差。',
+        steps: ['测量遮光片宽度 d 和两光电门间距 L', '释放滑块，记录通过光电门 1、2 的遮光时间 t₁、t₂', '由 v=d/t 求两个瞬时速度', '由 v₂²−v₁²=2aL 求加速度']
+      }
+    ],
+    'force-parallelogram': [
+      {
+        title: '方案一 · 弹簧测力计', short: '弹簧测力计',
+        formula: 'F = √(F₁² + F₂² + 2F₁F₂cos θ)', formulaTex: 'F = \\sqrt{F_1^2 + F_2^2 + 2F_1F_2\\cos\\theta}',
+        principle: '用两个弹簧测力计互成角度拉橡皮条，再用一个测力计把结点拉到同一位置，比较合力 F 与等效拉力 F′。',
+        formulaNote: '同一次实验结点 O 的位置必须相同；两分力夹角以 60°～120° 为宜；弹簧测力计应与木板平行。',
+        steps: ['固定白纸、橡皮条和两个细绳套', '用两个测力计互成角度拉结点到 O，记录读数与方向', '用一个测力计把结点拉到同一 O，记录 F′', '按同一标度作平行四边形，比较 F 与 F′']
+      },
+      {
+        title: '方案二 · 钩码', short: '钩码',
+        formula: 'F_A : F_B : F_C = a : b : c', formulaTex: 'F_A : F_B : F_C = a : b : c',
+        principle: '用三段绳子悬挂不同数量的等质量钩码，使结点静止；三段绳的拉力方向可由同心圆记录，拉力大小与钩码个数成正比。',
+        formulaNote: '不需要测出具体钩码重力，只要按 a:b:c 的比例作力的图示；平行四边形对角线与 F_C 近似等大反向即可验证。',
+        steps: ['用三段绳悬挂 a、b、c 个等质量钩码，调整滑轮使系统静止', '记录三段绳的方向和钩码个数', '在同心圆上按比例作出 F_A、F_B、F_C', '以 F_A、F_B 为邻边作平行四边形，与 F_C 比较']
+      }
+    ],
+    'projectile': [
+      {
+        title: '方案一 · 频闪照相', short: '频闪照相',
+        formula: 'x = v₀t ，  y = ½gt²', formulaTex: 'x = v_0t,\\quad y = \\frac{1}{2}gt^2',
+        principle: '频闪照片在相等时间间隔曝光一次；水平方向相邻位置等距，竖直方向位移差恒定，说明水平匀速、竖直自由落体。',
+        formulaNote: '由 Δy=gT² 求曝光时间，由水平位移求 v₀；不可用自由落体公式反算速度，否则会默认机械能守恒。',
+        steps: ['安装平抛装置，调整斜槽末端水平', '从同一位置释放小球，获得频闪照片', '测量水平、竖直方向位移', '由 Δy=gT² 和 x=v₀t 求初速度']
+      },
+      {
+        title: '方案二 · 分运动研究', short: '分运动研究',
+        formula: 'Δy = gT² ，  v₀ = x/T', formulaTex: '\\Delta y = gT^2,\\quad v_0 = \\frac{x}{T}',
+        principle: '分别研究竖直和水平分运动：A 球平抛与 B 球自由落体同时落地，说明竖直分运动为自由落体；水平方向等时间位移相同。',
+        formulaNote: '斜槽末端切线必须水平；小球每次从同一高度由静止释放；选实心小铁球减小空气阻力。',
+        steps: ['调整斜槽末端水平，固定白纸和复写纸', '从同一高度释放小球，记录多个落点', '建立 x–y 坐标，描出平抛轨迹', '用 Δy=gT² 和水平位移求 v₀']
+      }
+    ],
+    'centripetal': [
+      {
+        title: '方案一 · 向心力演示仪', short: '向心力演示仪',
+        formula: 'F = mω²r = mv²/r', formulaTex: 'F = m\\omega^2r = \\frac{mv^2}{r}',
+        principle: '采用控制变量法，分别保持 m、r、ω 中的两个量不变，研究向心力 F 与第三个量的关系。',
+        formulaNote: '皮带传动时两轮线速度相等，v=ωR；改变塔轮半径可改变角速度，长槽和短槽可改变转动半径。',
+        steps: ['选择两个质量相同的小球，放在半径不同的槽上', '保持角速度相同，探究 F 与 r 的关系', '改变塔轮半径，探究 F 与 ω 的关系', '换用不同质量小球，探究 F 与 m 的关系']
+      },
+      {
+        title: '方案二 · 光电门', short: '光电门',
+        formula: 'ω = d/(Lt) ，  F = mω²r', formulaTex: '\\omega = \\frac{d}{Lt},\\quad F = m\\omega^2r',
+        principle: '光滑水平直杆随竖直转轴匀速转动，物块由细线连接力传感器；遮光杆通过光电门测出角速度。',
+        formulaNote: '保持物块质量和半径 r 不变，作 F–ω² 图线；若图线为过原点的直线，则 F 与 ω² 成正比。',
+        steps: ['固定直杆、物块、力传感器和光电门', '使直杆匀速转动，记录遮光时间和拉力', '改变转速，测量多组 F 与 ω', '作 F–ω² 图像并分析']
+      }
+    ],
+    'mechanical-energy': [
+      {
+        title: '方案一 · 单个物体', short: '单个物体',
+        formula: 'mgh = ½mv²', formulaTex: 'mgh = \\frac{1}{2}mv^2',
+        principle: '重物自由下落时，重力势能减少量等于动能增加量；用纸带测量下落高度和瞬时速度进行验证。',
+        formulaNote: '因 m 可约去，不需要测质量；速度必须用“中间时刻速度等于平均速度”求，不能直接用自由落体公式。',
+        steps: ['安装打点计时器，纸带连接重物', '先接通电源，再释放重物', '测量各点下落高度 h 和瞬时速度 v', '比较 mgh 与 ½mv²，或作 v²–h 图像']
+      },
+      {
+        title: '方案二 · 系统', short: '系统',
+        formula: '(m_A − m_B)gh = ½(m_A + m_B)v²', formulaTex: '(m_A - m_B)gh = \\frac{1}{2}(m_A + m_B)v^2',
+        principle: 'A、B 两物体通过细绳连接，A 下降、B 上升；系统重力势能减少量转化为系统动能。',
+        formulaNote: '用游标卡尺测遮光片宽度 d，用天平测 m_A、m_B，用刻度尺测高度差 h；由遮光时间求速度。',
+        steps: ['测量遮光片宽度 d、两物体质量和高度差 h', '释放 A，使 B 向上运动并通过光电门', '记录遮光时间，求速度 v', '验证系统重力势能减少量与动能增加量']
+      }
+    ],
+    'momentum': [
+      {
+        title: '方案一 · 气垫导轨', short: '气垫导轨',
+        formula: 'm₁v₁ = m₁v₁′ + m₂v₂′', formulaTex: 'm_1v_1 = m_1v_1\\prime + m_2v_2\\prime',
+        principle: '气垫导轨近似无摩擦；滑块通过光电门测速度，碰撞前后系统总动量应保持不变。',
+        formulaNote: 'v=d/t；若碰撞前后总动能也相等，则为弹性碰撞。',
+        steps: ['测滑块质量和遮光条宽度', '安装气垫导轨并接通气源', '给滑块 1 初速度，记录碰撞前后遮光时间', '计算碰撞前后总动量并比较']
+      },
+      {
+        title: '方案二 · 斜槽小球', short: '斜槽小球',
+        formula: 'm₁·OP = m₁·OM + m₂·ON', formulaTex: 'm_1\\cdot OP = m_1\\cdot OM + m_2\\cdot ON',
+        principle: '小球从斜槽末端水平飞出后做平抛运动，飞行时间相同，水平位移与速度成正比，可用落点距离代替速度。',
+        formulaNote: '入射球质量应大于被碰球，两球半径相同；斜槽末端必须水平，每次从同一高度由静止释放。',
+        steps: ['测两球质量，安装斜槽并调整末端水平', '不放被碰球，重复释放入射球，确定平均落点 P', '放被碰球，重复碰撞，确定落点 M、N', '测量 OP、OM、ON，验证 m₁OP=m₁OM+m₂ON']
+      }
+    ],
+    'simple-pendulum': [
+      {
+        title: '方案一 · 计算法', short: '计算法',
+        formula: 'g = 4π²L/T²', formulaTex: 'g = \\frac{4\\pi^2L}{T^2}',
+        principle: '测出摆长 L 和周期 T，由单摆周期公式 T=2π√(L/g) 计算重力加速度。',
+        formulaNote: '摆长为悬点到球心的距离；周期应从最低点开始计时，测量多次全振动后取平均。',
+        steps: ['用米尺测悬线长，用游标卡尺测球直径', '将摆球拉开小角度后释放', '从最低点开始计时，测 n 次全振动时间', '计算周期 T，代入 g=4π²L/T²']
+      },
+      {
+        title: '方案二 · 图像法', short: '图像法',
+        formula: 'T² = (4π²/g)L', formulaTex: 'T^2 = \\frac{4\\pi^2}{g}L',
+        principle: '改变摆长，测出对应的周期，作 T²–L 图像；图线斜率 k=4π²/g，由此求 g。',
+        formulaNote: '摆长测量误差不影响斜率，因此图像法可减小摆长测量误差；周期测量误差仍会影响结果。',
+        steps: ['改变摆长，测量多组 L 和 T', '计算每组 T²', '作 T²–L 图像并求斜率 k', '由 g=4π²/k 求重力加速度']
+      }
+    ]
+  };
+  experiments.forEach(function (e) {
+    if (schemesById[e.id]) e.schemes = schemesById[e.id];
+    if (e.schemes && e.schemes.length) {
+      e.formula = e.schemes[0].formula || e.formula;
+      e.formulaTex = e.schemes[0].formulaTex || e.formulaTex;
+      e.principle = e.schemes[0].principle || e.principle;
+      e.formulaNote = e.schemes[0].formulaNote || e.formulaNote;
+      e.steps = e.schemes[0].steps || e.steps;
     }
   });
 

@@ -290,6 +290,8 @@
     return '<div class="view-inner">' +
       '<section class="workshop-hero"><span class="eyebrow">OPEN LAB STUDIO</span><h1>把想法，写成<br>可以运行的实验。</h1><p>选择变量、写下公式、实时预览。你设计的实验会立即进入 Prism 的实验库，也可以导出为 JSON 或通过开放接口分享给其他人。</p>' +
       '<div class="hero-actions"><button class="btn primary-hero" data-ws="focus-form">' + OL.iconsUI.spark() + ' 开始设计</button><button class="btn secondary" data-ws="import-json">' + OL.iconsUI.upload() + ' 导入 JSON</button></div></section>' +
+      '<div class="ws-tabs"><button data-ws-mode="formula" class="active">函数实验 <small>y = f(t, a, b)</small></button><button data-ws-mode="modules">模块搭建 <small>拖动器具 · 连线 · 运行</small><span class="ws-new">NEW</span></button></div>' +
+      '<div class="ws-panel" data-ws-panel="formula">' +
       '<div class="workshop-grid">' +
       '<section class="designer-card card" id="designerCard"><div class="designer-head"><div><h2>可视化实验设计器</h2><p>自变量 t · 参数 a / b · 函数 y = f(t, a, b)</p></div><span class="pill accent">无需写代码</span></div>' +
       '<form class="designer-body" id="designerForm" autocomplete="off">' +
@@ -320,10 +322,328 @@
         '<div class="empty-workshop">' + OL.iconsUI.spark() + '<p>还没有自定义实验。填写上方公式，创建你的第一个实验。</p></div>') +
       '<div class="plugin-drop">' + OL.iconsUI.upload() + '<span>加载本地 <b>.js</b> 插件文件（仅使用可信来源）</span><button data-ws="load-plugin">选择文件</button></div></div>' +
       '<input type="file" id="wsImport" accept=".json,application/json" hidden><input type="file" id="wsPlugin" accept=".js,text/javascript" hidden>' +
+      '</div>' + modulePanel() +
       '</div>';
   }
 
+  const MODULE_PARTS = {
+    cart: { label: '小车', cat: '运动', color: '#64a8ff', hint: '可沿轨道运动' },
+    ramp: { label: '斜面', cat: '运动', color: '#64a8ff', hint: '提供斜面与重力分量' },
+    ball: { label: '小球', cat: '运动', color: '#ffd166', hint: '自由落体 / 平抛' },
+    spring: { label: '弹簧', cat: '运动', color: '#64a8ff', hint: '弹力与振动' },
+    pendulum: { label: '摆球', cat: '运动', color: '#ff9f0a', hint: '单摆周期' },
+    battery: { label: '电源', cat: '电学', color: '#ff9f0a', hint: '提供电压' },
+    resistor: { label: '电阻', cat: '电学', color: '#ff9f0a', hint: '限流 / 分压' },
+    lamp: { label: '小灯泡', cat: '电学', color: '#ffd166', hint: '电流通过时发光' },
+    switch: { label: '开关', cat: '电学', color: '#ff9f0a', hint: '接通或断开电路' },
+    ammeter: { label: '电流表', cat: '电学', color: '#ff9f0a', hint: '串联测电流' },
+    voltmeter: { label: '电压表', cat: '电学', color: '#ff9f0a', hint: '并联测电压' },
+    light: { label: '光源', cat: '光学', color: '#bf5af2', hint: '发出平行光' },
+    lens: { label: '透镜', cat: '光学', color: '#bf5af2', hint: '会聚或发散光线' },
+    screen: { label: '光屏', cat: '光学', color: '#bf5af2', hint: '接收光斑' },
+    syringe: { label: '注射器', cat: '热学', color: '#30d158', hint: '封闭气体，改变体积' },
+    beaker: { label: '水槽', cat: '热学', color: '#30d158', hint: '盛水 / 油膜实验' }
+  };
+
+  function modulePanel() {
+    const cats = ['运动', '电学', '光学', '热学'];
+    const palette = cats.map((cat) => '<div class="module-cat"><span>' + cat + '</span><div class="module-palette-grid">' +
+      Object.keys(MODULE_PARTS).filter((k) => MODULE_PARTS[k].cat === cat).map((k) => {
+        const p = MODULE_PARTS[k];
+        return '<button class="module-part-chip" draggable="true" data-part="' + k + '" style="--part-color:' + p.color + '" title="' + p.hint + '"><i></i><b>' + p.label + '</b><small>' + p.hint + '</small></button>';
+      }).join('') + '</div></div>').join('');
+    return '<section class="module-builder" data-ws-panel="modules" hidden>' +
+      '<div class="module-head"><div><span class="eyebrow">MODULAR LAB</span><h2>像搭积木一样，搭一个实验。</h2><p>从左侧拖入实验器具，在画布上自由摆放；用“连线”连接电源、电表、光源与光屏。保存后可以随时继续编辑。</p></div><span class="pill accent">SCRATCH 式搭建</span></div>' +
+      '<div class="module-toolbar"><button class="module-tool active" data-mod-tool="select">选择</button><button class="module-tool" data-mod-tool="wire">连线</button><span class="module-divider"></span><button class="module-tool green" data-mod-action="run">运行</button><button class="module-tool" data-mod-action="stop">停止</button><button class="module-tool" data-mod-action="clear">清空</button><span class="spacer"></span><input class="module-name" id="moduleName" maxlength="30" placeholder="模块实验名称"><button class="module-tool" data-mod-action="save">保存模块实验</button></div>' +
+      '<div class="module-body"><aside class="module-palette"><div class="module-palette-head"><b>实验器具</b><span>拖到画布</span></div>' + palette + '</aside>' +
+      '<div class="module-stage-wrap"><canvas id="moduleCanvas"></canvas><div class="module-stage-hint" id="moduleHint">拖动左侧器具到画布 · 双击器具可删除</div></div>' +
+      '<aside class="module-inspector"><div class="module-inspector-head"><b>属性</b><span id="moduleSelection">未选择</span></div><div id="moduleInspector"><p class="module-empty">选择一个器具后，可修改名称和参数。</p></div><div class="module-saved"><div class="module-saved-head"><b>我的模块实验</b><span id="moduleSavedCount">0</span></div><div id="moduleSavedList"></div></div></aside></div>' +
+      '<div class="module-logic"><div><span class="eyebrow">连接逻辑</span><p>电源 → 开关 → 电阻 → 灯泡 形成回路；光源 → 透镜 → 光屏形成光路；运动器具会按重力自动演示。</p></div><button class="btn ghost small" data-mod-action="export">导出模块 JSON</button></div>' +
+      '</section>';
+  }
+
+  const MODULE_KEY = 'prism-module-builds-v1';
+  let moduleState = null;
+  let moduleRAF = 0;
+  let moduleDrag = null;
+  let moduleWireFrom = null;
+
+  function loadBuilds() {
+    try { const v = JSON.parse(localStorage.getItem(MODULE_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function saveBuilds(list) { try { localStorage.setItem(MODULE_KEY, JSON.stringify(list)); } catch (e) {} }
+  function newModuleState() {
+    return { id: '', name: '我的模块实验', parts: [], links: [], selected: null, tool: 'select', running: false, t: 0 };
+  }
+  function modulePart(id) { return moduleState.parts.find((p) => p.id === id); }
+  function moduleCenter(p) { return { x: p.x + 40, y: p.y + 34 }; }
+
+  function drawModulePart(ctx, p, t, powered) {
+    const meta = MODULE_PARTS[p.type] || { label: '模块', color: '#64a8ff' };
+    const x = p.x, y = p.y;
+    const selected = moduleState.selected === p.id;
+    C.fillRound(ctx, x, y, 80, 68, 12, 'rgba(12,22,38,.86)');
+    ctx.strokeStyle = selected ? '#ffffff' : C.hexA(meta.color, .55);
+    ctx.lineWidth = selected ? 2 : 1.2;
+    C.roundRect(ctx, x, y, 80, 68, 12); ctx.stroke();
+    ctx.save();
+    ctx.translate(x + 40, y + 30);
+    ctx.strokeStyle = meta.color; ctx.fillStyle = C.hexA(meta.color, .2); ctx.lineWidth = 1.7;
+    if (p.type === 'cart') {
+      C.fillRound(ctx, -22, -8, 40, 16, 4, C.hexA(meta.color, .22));
+      C.line(ctx, -26, 12, 28, 12, meta.color, 2);
+      C.dot(ctx, -14, 14, 4, meta.color); C.dot(ctx, 16, 14, 4, meta.color);
+    } else if (p.type === 'ramp') {
+      ctx.beginPath(); ctx.moveTo(-24, 18); ctx.lineTo(-24, -16); ctx.lineTo(26, 18); ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else if (p.type === 'ball') {
+      const bounce = moduleState.running ? Math.abs(Math.sin(t * 2.6)) * 18 : 0;
+      ctx.beginPath(); ctx.arc(0, 10 - bounce, 10, 0, Math.PI * 2); ctx.fillStyle = meta.color; ctx.fill();
+    } else if (p.type === 'spring') {
+      ctx.beginPath(); ctx.moveTo(0, -20);
+      for (let i = 1; i <= 6; i++) ctx.lineTo(i % 2 ? -12 : 12, -20 + i * 5);
+      ctx.stroke();
+    } else if (p.type === 'pendulum') {
+      const a = moduleState.running ? Math.sin(t * 2.2) * .45 : .35;
+      C.line(ctx, 0, -22, Math.sin(a) * 34, Math.cos(a) * 34, meta.color, 1.5);
+      C.dot(ctx, Math.sin(a) * 34, Math.cos(a) * 34, 8, meta.color);
+    } else if (p.type === 'battery') {
+      C.fillRound(ctx, -24, -10, 42, 20, 4, C.hexA(meta.color, .2));
+      C.line(ctx, 22, -5, 22, 5, meta.color, 2);
+      C.label(ctx, '+', -18, -14, { size: 8, color: meta.color });
+    } else if (p.type === 'resistor') {
+      C.fillRound(ctx, -24, -8, 48, 16, 4, C.hexA(meta.color, .18));
+      C.line(ctx, -14, -8, -8, 8, meta.color, 1.2); C.line(ctx, -8, 8, -2, -8, meta.color, 1.2); C.line(ctx, -2, -8, 4, 8, meta.color, 1.2); C.line(ctx, 4, 8, 10, -8, meta.color, 1.2);
+    } else if (p.type === 'lamp') {
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fillStyle = powered ? 'rgba(255,209,102,.55)' : C.hexA(meta.color, .16); ctx.fill(); ctx.stroke();
+      if (powered) { ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 18; ctx.stroke(); }
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; C.line(ctx, Math.cos(a) * 18, Math.sin(a) * 18, Math.cos(a) * 24, Math.sin(a) * 24, meta.color, 1); }
+    } else if (p.type === 'switch') {
+      C.line(ctx, -24, 6, -6, 6, meta.color, 2); C.line(ctx, 8, 6, 24, 6, meta.color, 2);
+      C.line(ctx, -6, 6, 16, -12, meta.color, 2);
+    } else if (p.type === 'ammeter' || p.type === 'voltmeter') {
+      ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fillStyle = C.hexA(meta.color, .15); ctx.fill(); ctx.stroke();
+      C.label(ctx, p.type === 'ammeter' ? 'A' : 'V', 0, 5, { size: 13, color: meta.color, align: 'center', weight: 700 });
+    } else if (p.type === 'light') {
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fillStyle = meta.color; ctx.fill();
+      for (let i = 0; i < 5; i++) { const yy = -14 + i * 7; C.line(ctx, 12, yy, 34, yy, C.hexA(meta.color, .8), 1); }
+    } else if (p.type === 'lens') {
+      ctx.beginPath(); ctx.ellipse(0, 0, 8, 24, 0, 0, Math.PI * 2); ctx.fillStyle = C.hexA(meta.color, .2); ctx.fill(); ctx.stroke();
+    } else if (p.type === 'screen') {
+      C.line(ctx, 6, -24, 6, 24, meta.color, 3); C.line(ctx, -18, -24, 6, -24, meta.color, 1); C.line(ctx, -18, 24, 6, 24, meta.color, 1);
+    } else if (p.type === 'syringe') {
+      C.fillRound(ctx, -26, -9, 46, 18, 4, C.hexA(meta.color, .18));
+      C.line(ctx, 20, -4, 32, -4, meta.color, 2); C.line(ctx, 20, 4, 32, 4, meta.color, 2);
+      C.line(ctx, -20, -9, -20, 9, meta.color, 1.5);
+    } else if (p.type === 'beaker') {
+      ctx.beginPath(); ctx.moveTo(-20, -18); ctx.lineTo(-14, 20); ctx.lineTo(14, 20); ctx.lineTo(20, -18); ctx.stroke();
+      C.line(ctx, -16, 8, 16, 8, C.hexA(meta.color, .6), 5);
+    } else {
+      C.dot(ctx, 0, 0, 10, meta.color);
+    }
+    ctx.restore();
+    C.label(ctx, p.label || meta.label, x + 40, y + 53, { size: 8.5, color: '#e8f1ff', align: 'center', weight: 600 });
+    if (p.value) C.label(ctx, p.value, x + 40, y + 63, { size: 7, color: C.hexA(meta.color, .75), align: 'center', mono: true });
+  }
+
+  function drawModuleScene() {
+    const canvas = document.querySelector('#moduleCanvas');
+    if (!canvas || !moduleState) return;
+    const c = C.prepare(canvas), ctx = c.ctx, w = c.w, h = c.h;
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0d1728'); bg.addColorStop(1, '#080d16');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    C.grid(ctx, w, h, { step: 28, vignette: false });
+    const powered = moduleState.parts.some((p) => p.type === 'battery') && moduleState.parts.some((p) => p.type === 'lamp') && moduleState.links.length > 0;
+    // flow / wires
+    moduleState.links.forEach((l) => {
+      const a = modulePart(l.from), b = modulePart(l.to);
+      if (!a || !b) return;
+      const ca = moduleCenter(a), cb = moduleCenter(b);
+      C.line(ctx, ca.x, ca.y, cb.x, cb.y, 'rgba(125,255,158,.4)', 1.5, [4, 5]);
+    });
+    moduleState.parts.forEach((p) => drawModulePart(ctx, p, moduleState.t, powered));
+    if (!moduleState.parts.length) {
+      C.label(ctx, '拖动左侧器具到这里', w / 2, h / 2 - 8, { size: 14, color: 'rgba(230,240,255,.38)', align: 'center' });
+      C.label(ctx, '小车 · 斜面 · 电源 · 透镜 · 注射器', w / 2, h / 2 + 14, { size: 9, color: 'rgba(230,240,255,.24)', align: 'center' });
+    }
+    const status = moduleState.running ? '运行中 · 拖动器具仍可编辑' : '编辑模式 · 连线后点击运行';
+    C.label(ctx, status, 16, h - 15, { size: 8, color: moduleState.running ? 'rgba(125,255,158,.65)' : 'rgba(230,240,255,.32)', mono: true });
+  }
+
+  function startModuleLoop() {
+    cancelAnimationFrame(moduleRAF);
+    const step = () => {
+      if (!moduleState || !moduleState.running) return;
+      moduleState.t += 0.016;
+      drawModuleScene();
+      moduleRAF = requestAnimationFrame(step);
+    };
+    moduleRAF = requestAnimationFrame(step);
+  }
+
+  function renderModuleInspector() {
+    const box = document.querySelector('#moduleInspector');
+    const label = document.querySelector('#moduleSelection');
+    if (!box) return;
+    const p = modulePart(moduleState.selected);
+    if (label) label.textContent = p ? (p.label || MODULE_PARTS[p.type].label) : '未选择';
+    if (!p) { box.innerHTML = '<p class="module-empty">选择一个器具后，可修改名称和参数。</p>'; return; }
+    box.innerHTML = '<div class="module-field"><label>名称</label><input data-mod-field="label" value="' + esc(p.label || '') + '"></div>' +
+      '<div class="module-field"><label>参数 / 读数</label><input data-mod-field="value" value="' + esc(p.value || '') + '" placeholder="如 2 N / 6 V"></div>' +
+      '<div class="module-type">' + (MODULE_PARTS[p.type].cat) + ' · ' + MODULE_PARTS[p.type].hint + '</div>' +
+      '<button class="btn ghost small module-delete" data-mod-action="delete">删除这个器具</button>';
+  }
+
+  function renderModuleSaved() {
+    const list = document.querySelector('#moduleSavedList');
+    const count = document.querySelector('#moduleSavedCount');
+    if (!list) return;
+    const builds = loadBuilds();
+    if (count) count.textContent = builds.length;
+    list.innerHTML = builds.length ? builds.map((b) => '<div class="module-saved-item"><button data-mod-load="' + b.id + '">' + esc(b.name) + '<small>' + (b.parts ? b.parts.length : 0) + ' 个器具 · ' + (b.links ? b.links.length : 0) + ' 条连线</small></button><button data-mod-remove="' + b.id + '" title="删除">×</button></div>').join('') : '<p class="module-empty">还没有保存的模块实验。</p>';
+  }
+
+  function bindModules(root) {
+    cancelAnimationFrame(moduleRAF);
+    const canvas = root.querySelector('#moduleCanvas');
+    if (!canvas) return;
+    if (!moduleState) moduleState = newModuleState();
+    if (moduleState.selected && !modulePart(moduleState.selected)) moduleState.selected = null;
+    const nameInput = root.querySelector('#moduleName');
+    if (nameInput) nameInput.value = moduleState.name;
+    drawModuleScene();
+    renderModuleInspector();
+    renderModuleSaved();
+
+    // tabs
+    root.querySelectorAll('[data-ws-mode]').forEach((b) => b.addEventListener('click', () => {
+      root.querySelectorAll('[data-ws-mode]').forEach((x) => x.classList.toggle('active', x === b));
+      root.querySelectorAll('[data-ws-panel]').forEach((p) => { p.hidden = p.dataset.wsPanel !== b.dataset.wsMode; });
+      if (b.dataset.wsMode === 'modules') { drawModuleScene(); renderModuleSaved(); }
+    }));
+
+    // palette drag
+    root.querySelectorAll('[data-part]').forEach((b) => {
+      b.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', b.dataset.part); e.dataTransfer.effectAllowed = 'copy'; });
+    });
+    canvas.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    canvas.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const type = e.dataTransfer.getData('text/plain');
+      if (!MODULE_PARTS[type]) return;
+      const r = canvas.getBoundingClientRect();
+      const p = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), type: type, x: Math.max(8, e.clientX - r.left - 40), y: Math.max(8, e.clientY - r.top - 34), label: MODULE_PARTS[type].label, value: '' };
+      moduleState.parts.push(p); moduleState.selected = p.id;
+      drawModuleScene(); renderModuleInspector();
+      if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '已添加 ' + p.label + ' · 拖动可移动 · 双击删除';
+    });
+
+    // canvas pointer interaction
+    canvas.addEventListener('pointerdown', (e) => {
+      const r = canvas.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const hit = moduleState.parts.slice().reverse().find((p) => x >= p.x && x <= p.x + 80 && y >= p.y && y <= p.y + 68);
+      if (moduleState.tool === 'wire') {
+        if (!hit) return;
+        if (!moduleWireFrom) {
+          moduleWireFrom = hit.id;
+          if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '已选择起点，再点击另一个器具完成连线';
+        } else if (moduleWireFrom !== hit.id) {
+          moduleState.links.push({ from: moduleWireFrom, to: hit.id });
+          moduleWireFrom = null;
+          drawModuleScene();
+          if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '连线已创建';
+        }
+        return;
+      }
+      moduleState.selected = hit ? hit.id : null;
+      if (hit) {
+        moduleDrag = { id: hit.id, dx: x - hit.x, dy: y - hit.y };
+        canvas.setPointerCapture(e.pointerId);
+      }
+      drawModuleScene(); renderModuleInspector();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!moduleDrag) return;
+      const p = modulePart(moduleDrag.id); if (!p) return;
+      const r = canvas.getBoundingClientRect();
+      p.x = U.clamp(e.clientX - r.left - moduleDrag.dx, 0, r.width - 80);
+      p.y = U.clamp(e.clientY - r.top - moduleDrag.dy, 0, r.height - 68);
+      drawModuleScene();
+    });
+    canvas.addEventListener('pointerup', () => { moduleDrag = null; });
+    canvas.addEventListener('dblclick', (e) => {
+      const r = canvas.getBoundingClientRect();
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      const hit = moduleState.parts.slice().reverse().find((p) => x >= p.x && x <= p.x + 80 && y >= p.y && y <= p.y + 68);
+      if (hit) { moduleState.parts = moduleState.parts.filter((p) => p.id !== hit.id); moduleState.links = moduleState.links.filter((l) => l.from !== hit.id && l.to !== hit.id); moduleState.selected = null; drawModuleScene(); renderModuleInspector(); }
+    });
+
+    // toolbar
+    root.querySelectorAll('[data-mod-tool]').forEach((b) => b.addEventListener('click', () => {
+      moduleState.tool = b.dataset.modTool; moduleWireFrom = null;
+      root.querySelectorAll('[data-mod-tool]').forEach((x) => x.classList.toggle('active', x === b));
+      if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = b.dataset.modTool === 'wire' ? '连线模式：依次点击两个器具' : '拖动器具移动位置，双击删除';
+    }));
+    root.querySelectorAll('[data-mod-action]').forEach((b) => b.addEventListener('click', () => {
+      const a = b.dataset.modAction;
+      if (a === 'run') { moduleState.running = true; if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '运行中：器具会在画布上演示'; startModuleLoop(); }
+      if (a === 'stop') { moduleState.running = false; cancelAnimationFrame(moduleRAF); drawModuleScene(); }
+      if (a === 'clear') { moduleState.parts = []; moduleState.links = []; moduleState.selected = null; moduleState.running = false; moduleWireFrom = null; cancelAnimationFrame(moduleRAF); drawModuleScene(); renderModuleInspector(); }
+      if (a === 'delete') { if (moduleState.selected) { moduleState.parts = moduleState.parts.filter((p) => p.id !== moduleState.selected); moduleState.links = moduleState.links.filter((l) => l.from !== moduleState.selected && l.to !== moduleState.selected); moduleState.selected = null; drawModuleScene(); renderModuleInspector(); } }
+      if (a === 'save') {
+        const name = (nameInput && nameInput.value.trim()) || '我的模块实验';
+        const id = moduleState.id || 'mod-' + Date.now().toString(36);
+        const builds = loadBuilds().filter((x) => x.id !== id);
+        builds.unshift({ id: id, name: name, parts: moduleState.parts.slice(), links: moduleState.links.slice() });
+        saveBuilds(builds);
+        moduleState.id = id; moduleState.name = name;
+        if (nameInput) nameInput.value = name;
+        renderModuleSaved();
+        OL.app.toast('模块实验已保存：' + name);
+      }
+      if (a === 'export') {
+        const data = { name: (nameInput && nameInput.value.trim()) || moduleState.name, parts: moduleState.parts, links: moduleState.links };
+        U.download('prism-module-lab.json', JSON.stringify(data, null, 2), 'application/json');
+        OL.app.toast('模块实验已导出');
+      }
+    }));
+
+    // inspector fields
+    root.querySelector('#moduleInspector')?.addEventListener('input', (e) => {
+      const f = e.target.closest('[data-mod-field]'); if (!f) return;
+      const p = modulePart(moduleState.selected); if (!p) return;
+      p[f.dataset.modField] = f.value;
+      drawModuleScene();
+    });
+    // Dynamic controls created by the inspector / saved list are handled by delegation.
+    root.addEventListener('click', (e) => {
+      const del = e.target.closest('[data-mod-action="delete"]');
+      if (del && moduleState.selected) {
+        const id = moduleState.selected;
+        moduleState.parts = moduleState.parts.filter((p) => p.id !== id);
+        moduleState.links = moduleState.links.filter((l) => l.from !== id && l.to !== id);
+        moduleState.selected = null;
+        drawModuleScene(); renderModuleInspector();
+        return;
+      }
+      const load = e.target.closest('[data-mod-load]');
+      if (load) {
+        const build = loadBuilds().find((x) => x.id === load.dataset.modLoad); if (!build) return;
+        moduleState = { id: build.id, name: build.name, parts: (build.parts || []).slice(), links: (build.links || []).slice(), selected: null, tool: 'select', running: false, t: 0 };
+        if (nameInput) nameInput.value = moduleState.name;
+        drawModuleScene(); renderModuleInspector();
+        return;
+      }
+      const remove = e.target.closest('[data-mod-remove]');
+      if (remove) { saveBuilds(loadBuilds().filter((x) => x.id !== remove.dataset.modRemove)); renderModuleSaved(); }
+    });
+    if (nameInput) nameInput.addEventListener('input', () => { moduleState.name = nameInput.value; });
+  }
+
   function bind(root) {
+    bindModules(root);
     const form = root.querySelector('#designerForm');
     const canvas = root.querySelector('#designerPreview');
     if (form && canvas) {

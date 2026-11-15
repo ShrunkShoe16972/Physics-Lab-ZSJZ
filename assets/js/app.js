@@ -112,12 +112,13 @@
 
   function syncProgress() {
     const s = U.load();
+    const total = OL.experiments.length;
     const done = s.completed.filter((id) => !!OL.getExperiment(id)).length;
-    const pct = Math.round(Math.min(21, done) / 21 * 100);
+    const pct = Math.round(Math.min(total, done) / total * 100);
     const txt = $('#sideProgressText'), bar = $('#sideProgressBar'), cnt = $('#sideDoneCount');
     if (txt) txt.textContent = pct + '%';
     if (bar) bar.style.width = pct + '%';
-    if (cnt) cnt.textContent = Math.min(21, done);
+    if (cnt) cnt.textContent = Math.min(total, done);
   }
 
   function setCrumb(html) { const el = $('#crumb'); if (el) el.innerHTML = html; }
@@ -168,7 +169,7 @@
 
   function openHelp() {
     openModal('快速指南', [
-      '<p style="margin:0 0 14px;color:var(--text-2);font-size:12px;line-height:1.7">Prism 把高中物理的 21 个基本实验做成了可交互的模拟器。每个实验都提供实时读数、图像探究与实验向导。</p>',
+      '<p style="margin:0 0 14px;color:var(--text-2);font-size:12px;line-height:1.7">Prism 把高中物理的 22 个基本实验做成了可交互的模拟器。每个实验都提供实时读数、图像探究与实验向导。</p>',
       '<div class="api-list">',
       '<li>' + ui('info') + '<span><b>拖动变量</b>：右侧滑块会实时改变模拟，图像同步更新。</span></li>',
       '<li>' + ui('chart') + '<span><b>采集数据</b>：点击按钮记录一组数据，图表与数据表会自动累积。</span></li>',
@@ -211,7 +212,7 @@
 
   function openWelcome() {
     openModal('欢迎来到 Prism', '<p class="welcome-lead">先选择你的阅读方式。以后随时可以在右上角 <b>设置</b> 中修改。</p>' + appearanceFields(), {
-      sub: '21 个高中物理实验，准备好了',
+      sub: '22 个高中物理实验，准备好了',
       footer: '<button class="btn" data-action="finish-welcome">开始探索 ' + ui('arrow') + '</button>'
     });
     setTimeout(() => { const r = $('[data-font-slider]'); if (r) r.focus({ preventScroll: true }); }, 60);
@@ -255,7 +256,7 @@
       '<div class="palette" role="dialog" aria-modal="true">' +
       '<div class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="paletteInput" type="text" placeholder="搜索实验、概念或公式…" autocomplete="off"><span class="esc">ESC</span></div>' +
       '<div class="palette-list" id="paletteList"></div>' +
-      '<div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> 选择</span><span><kbd>↵</kbd> 打开</span><span style="margin-left:auto">21 个实验 · 4 个领域</span></div>' +
+      '<div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> 选择</span><span><kbd>↵</kbd> 打开</span><span style="margin-left:auto">' + OL.experiments.length + ' 个实验 · 4 个领域</span></div>' +
       '</div>';
     root.classList.add('open');
     root.setAttribute('aria-hidden', 'false');
@@ -403,6 +404,46 @@
     $$('[data-book]').forEach((b) => b.classList.toggle('active', b.dataset.book === state.book));
   }
 
+  function switchScheme(index) {
+    const cur = state.currentLab;
+    if (!cur || !cur.exp.schemes || !cur.exp.schemes.length) return;
+    const i = Math.max(0, Math.min(cur.exp.schemes.length - 1, Number(index) || 0));
+    if (i === cur.view.scheme) return;
+    cur.view.scheme = i;
+    const display = displayContent(cur.exp, cur.view);
+    U.save({ schemeSelections: Object.assign({}, U.load().schemeSelections || {}, { [cur.id]: i }) });
+    const formula = $('#principleFormula');
+    const copy = $('#principleCopy');
+    const principle = $('#principlePrinciple');
+    const note = $('#principleNote');
+    if (formula) formula.innerHTML = OL.tex.render(display.formulaTex || display.formula, true);
+    if (copy) copy.dataset.copy = display.formula;
+    if (principle) principle.textContent = display.principle;
+    if (note) note.textContent = display.formulaNote || '';
+    const steps = $('#steps');
+    if (steps) steps.innerHTML = stepListHTML(cur.exp, cur.view);
+    const dock = $('#schemeDock');
+    if (dock) {
+      dock.style.setProperty('--scheme-index', i);
+      $$('button', dock).forEach((b, n) => b.classList.toggle('active', n === i));
+    }
+    const badge = $('#schemeStageBadge');
+    if (badge) badge.textContent = cur.exp.schemes[i].short || cur.exp.schemes[i].title || '';
+    const banner = $('.principle-banner');
+    if (banner) {
+      banner.classList.remove('scheme-swap');
+      void banner.offsetWidth;
+      banner.classList.add('scheme-swap');
+    }
+    const stepsBox = $('#steps');
+    if (stepsBox) {
+      stepsBox.classList.remove('scheme-swap');
+      void stepsBox.offsetWidth;
+      stepsBox.classList.add('scheme-swap');
+    }
+    cur.view.dirty = true;
+  }
+
   function renderHome() {
     const s = U.load();
     const done = s.completed.filter((id) => !!OL.getExperiment(id)).length;
@@ -411,18 +452,18 @@
     viewEl.innerHTML = '<div class="view-inner">' +
       '<section class="hero">' +
       '<div class="hero-copy">' +
-      '<span class="hero-badge"><i class="pulse"></i>21 个经典实验 · 全新交互引擎</span>' +
+      '<span class="hero-badge"><i class="pulse"></i>' + OL.experiments.length + ' 个经典实验 · 全新交互引擎</span>' +
       '<h1>把每一个公式，<br><span class="grad">变成看得见的实验。</span></h1>' +
       '<p>从打点计时器到双缝干涉，用实时图像、可拖动的变量与微观动画，重新理解高中物理。</p>' +
       '<div class="hero-actions"><button class="btn primary-hero" data-action="continue">' + ui('play') + ' 继续实验</button><button class="btn secondary" data-action="open-workshop">' + ui('spark') + ' 创意工坊</button></div>' +
-      '<div class="hero-meta"><div><strong>21</strong><span>实验</span></div><div><strong>4</strong><span>领域</span></div><div><strong>' + done + '</strong><span>已完成</span></div><div><strong>100%</strong><span>可交互</span></div></div>' +
+      '<div class="hero-meta"><div><strong>' + OL.experiments.length + '</strong><span>实验</span></div><div><strong>4</strong><span>领域</span></div><div><strong>' + done + '</strong><span>已完成</span></div><div><strong>100%</strong><span>可交互</span></div></div>' +
       '</div>' +
       '<div class="hero-visual"><canvas id="heroOrbit"></canvas><div class="hero-caption"><i></i>LIVE SIMULATION ENGINE</div></div>' +
       '</section>' +
       '<div class="dash-grid">' +
       '<div class="continue-card card" data-lab="' + last.id + '" role="button" tabindex="0"><div class="continue-art">' + OL.icon(last.icon) + '</div><div class="continue-copy"><span class="eyebrow">' + (U.isDone(last.id) ? '再次实验' : '继续上次') + '</span><h3>' + U.esc(last.title) + '</h3><p>' + U.esc(lastCat.name) + ' · ' + U.esc(last.formula) + '</p></div><button class="btn small" data-lab="' + last.id + '">' + (U.isDone(last.id) ? '重新打开' : '继续') + ' ' + ui('arrow') + '</button></div>' +
       '<div class="quick-stats card">' +
-      '<div class="quick-stat"><strong>' + done + '<span>/21</span></strong><em>完成实验</em></div>' +
+      '<div class="quick-stat"><strong>' + done + '<span>/' + OL.experiments.length + '</span></strong><em>完成实验</em></div>' +
       '<div class="quick-stat"><strong>' + done + '</strong><em>累计完成</em></div>' +
       '<div class="quick-stat"><strong>4</strong><em>学科领域</em></div>' +
       '</div></div>' +
@@ -438,10 +479,10 @@
   function renderLibrary() {
     const s = U.load();
     const done = s.completed.filter((id) => !!OL.getExperiment(id)).length;
-    const pct = Math.round(done / 21 * 100);
+    const pct = Math.round(done / OL.experiments.length * 100);
     viewEl.innerHTML = '<div class="view-inner">' +
-      '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">21 个实验，<br>一条完整的物理脉络。</h1><p class="page-sub">力学、电磁学、光学与分子热学。每个实验都可以拖动变量、记录数据、生成图像。</p></div>' +
-      '<div class="library-progress"><span class="ring" style="--p:' + pct + '%"></span><span><b style="color:var(--text)">' + done + '/21</b> 已完成</span></div></div>' +
+      '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">' + OL.experiments.length + ' 个实验，<br>一条完整的物理脉络。</h1><p class="page-sub">力学、电磁学、光学与分子热学。每个实验都可以拖动变量、记录数据、生成图像。</p></div>' +
+      '<div class="library-progress"><span class="ring" style="--p:' + pct + '%"></span><span><b style="color:var(--text)">' + done + '/' + OL.experiments.length + '</b> 已完成</span></div></div>' +
       '<div class="filter-row" id="libFilters">' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
       '<div class="filter-row book-filter-row" id="libBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
       '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
@@ -571,6 +612,8 @@
   function defaultValue(c) { return c.type === 'select' || c.type === 'segmented' ? c.value : Number(c.value); }
 
   function activeSteps(exp, view) {
+    const scheme = currentScheme(exp, view);
+    if (scheme && scheme.steps && scheme.steps.length) return scheme.steps;
     if (exp && exp.stepVersions && view && view.stepVariant === 'complex' && exp.stepVersions.complex) {
       return exp.stepVersions.complex;
     }
@@ -578,13 +621,35 @@
     return (exp && exp.steps) || [];
   }
 
-  function stepStorageKey(id, view) {
-    return view && view.stepVariant === 'complex' ? id + ':complex' : id;
+  function schemeList(exp) { return exp && exp.schemes && exp.schemes.length > 1 ? exp.schemes : null; }
+
+  function currentScheme(exp, view) {
+    if (!exp || !exp.schemes || !exp.schemes.length) return null;
+    const i = Math.max(0, Math.min(exp.schemes.length - 1, Number(view && view.scheme) || 0));
+    return exp.schemes[i];
+  }
+
+  function displayContent(exp, view) {
+    const scheme = currentScheme(exp, view);
+    if (!scheme) return exp;
+    return Object.assign({}, exp, {
+      formula: scheme.formula || exp.formula,
+      formulaTex: scheme.formulaTex || exp.formulaTex,
+      principle: scheme.principle || exp.principle,
+      formulaNote: scheme.formulaNote || exp.formulaNote,
+      steps: scheme.steps || exp.steps
+    });
+  }
+
+  function stepStorageKey(id, view, exp) {
+    const scheme = exp && currentScheme(exp, view);
+    const suffix = scheme ? ':scheme-' + exp.schemes.indexOf(scheme) : '';
+    return id + suffix + (view && view.stepVariant === 'complex' ? ':complex' : '');
   }
 
   function stepListHTML(exp, view) {
     const steps = activeSteps(exp, view);
-    const checked = (U.load().steps[stepStorageKey(exp.id, view)] || []);
+    const checked = (U.load().steps[stepStorageKey(exp.id, view, exp)] || []);
     return steps.map((s, i) => {
       const on = !!checked[i];
       return '<li class="step' + (on ? ' done' : '') + '" data-step="' + i + '"><span class="step-check">' + (on ? ui('check') : (i + 1)) + '</span><p>' + U.esc(s) + '</p></li>';
@@ -634,9 +699,11 @@
       t: 0, playing: false, records: [], dirty: true, lastTs: performance.now(),
       autoClock: 0, lastSample: -1, active: true, tab: 'chart', chart: null,
       done: U.isDone(id),
-      stepVariant: (exp.stepVersions && (U.load().stepVariants || {})[id] === 'complex') ? 'complex' : 'simple'
+      stepVariant: (exp.stepVersions && (U.load().stepVariants || {})[id] === 'complex') ? 'complex' : 'simple',
+      scheme: Math.max(0, Number((U.load().schemeSelections || {})[id]) || 0)
     };
     const cat = catOf(exp);
+    const display = displayContent(exp, view);
     const expIndex = OL.experiments.findIndex((e) => e.id === id);
     const labSwitcher = expIndex >= 0
       ? '<div class="lab-switcher" aria-label="快速切换实验">' +
@@ -647,6 +714,19 @@
       : '';
     const stepHTML = stepListHTML(exp, view);
 
+    const schemeListForLab = schemeList(exp);
+    if (schemeListForLab) {
+      const si = exp.schemes.indexOf(currentScheme(exp, view));
+      view.scheme = si < 0 ? 0 : si;
+    }
+    const schemeDock = schemeListForLab
+      ? '<div class="scheme-dock" id="schemeDock" style="--scheme-index:' + view.scheme + ';--scheme-count:' + schemeListForLab.length + '" aria-label="实验方案切换">' +
+        '<span class="scheme-thumb" aria-hidden="true"></span>' +
+        schemeListForLab.map((s, i) => '<button data-scheme="' + i + '" class="' + (i === view.scheme ? 'active' : '') + '" title="' + U.esc(s.title || ('方案' + (i + 1))) + '">方案' + ['一', '二', '三'][i] + '</button>').join('') +
+        '</div>'
+      : '';
+    const schemeLabel = schemeListForLab ? (currentScheme(exp, view).short || currentScheme(exp, view).title || '') : '';
+
     viewEl.innerHTML = '<div class="lab-page" style="--accent:' + (exp.accent || cat.color) + '">' +
       '<div class="lab-head"><div class="lab-head-left">' +
       '<button class="back-link" data-route="library">' + ui('back') + ' 返回实验库</button>' +
@@ -655,13 +735,14 @@
       '<div class="lab-head-right">' + labSwitcher +
       (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
       '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
+      schemeDock +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
-      '<div class="principle-main"><div class="principle-formula"><div class="formula-tex">' + OL.tex.render(exp.formulaTex || exp.formula, true) + '</div><button class="icon-btn copy-code" data-copy="' + U.esc(exp.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
-      '<p>' + U.esc(exp.principle) + '</p>' +
-      (exp.formulaNote ? '<div class="principle-note">' + U.esc(exp.formulaNote) + '</div>' : '') +
+      '<div class="principle-main"><div class="principle-formula"><div class="formula-tex" id="principleFormula">' + OL.tex.render(display.formulaTex || display.formula, true) + '</div><button class="icon-btn copy-code" id="principleCopy" data-copy="' + U.esc(display.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
+      '<p id="principlePrinciple">' + U.esc(display.principle) + '</p>' +
+      (display.formulaNote ? '<div class="principle-note" id="principleNote">' + U.esc(display.formulaNote) + '</div>' : '<div class="principle-note" id="principleNote"></div>') +
       '</div></section>' +
       '<div class="lab-layout"><section class="stage-card" id="stageCard">' +
-      '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span></div>' +
+      '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span>' + (schemeLabel ? '<span class="scheme-stage-badge" id="schemeStageBadge">' + U.esc(schemeLabel) + '</span>' : '') + '</div>' +
       '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool stage-expand" data-action="expand" title="放大实验舞台" aria-label="放大实验舞台"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg><span>放大</span></button></div></div>' +
       '<div class="stage-wrap"><canvas id="labCanvas"></canvas></div>' +
       (canPlay(lab) ? '<div class="stage-tip"><kbd>SPACE</kbd> 播放 / 暂停</div>' : '') +
@@ -1109,6 +1190,8 @@
     if (filter) { applyFilter(filter.dataset.filter); return; }
     const book = e.target.closest('[data-book]');
     if (book) { applyBookFilter(book.dataset.book); return; }
+    const scheme = e.target.closest('[data-scheme]');
+    if (scheme) { switchScheme(scheme.dataset.scheme); return; }
     const themeChoice = e.target.closest('[data-set-theme]');
     if (themeChoice) { applyTheme(themeChoice.dataset.setTheme, true); return; }
     const styleChoice = e.target.closest('[data-set-style]');
@@ -1119,7 +1202,7 @@
       const i = Number(step.dataset.step);
       const s = U.load();
       s.steps = s.steps || {};
-      const key = stepStorageKey(cur.id, cur.view);
+      const key = stepStorageKey(cur.id, cur.view, cur.exp);
       const arr = s.steps[key] || [];
       arr[i] = !arr[i];
       s.steps[key] = arr;
