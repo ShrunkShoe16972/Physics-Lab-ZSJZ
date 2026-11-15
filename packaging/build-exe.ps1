@@ -20,7 +20,10 @@ New-Item -ItemType Directory -Force -Path (Join-Path $stage 'assets') | Out-Null
 Copy-Item (Join-Path $root 'assets\css') (Join-Path $stage 'assets\css') -Recurse
 Copy-Item (Join-Path $root 'assets\js') (Join-Path $stage 'assets\js') -Recurse
 Copy-Item (Join-Path $root 'assets\vendor') (Join-Path $stage 'assets\vendor') -Recurse
-Copy-Item (Join-Path $root 'assets\img') (Join-Path $stage 'assets\img') -Recurse
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'assets\img') | Out-Null
+Copy-Item (Join-Path $root 'assets\img\school-badge.png') (Join-Path $stage 'assets\img\school-badge.png')
+Copy-Item (Join-Path $root 'assets\img\thumbs') (Join-Path $stage 'assets\img\thumbs') -Recurse
+Copy-Item (Join-Path $root 'assets\img\backgrounds') (Join-Path $stage 'assets\img\backgrounds') -Recurse
 Copy-Item (Join-Path $root 'assets\ppt') (Join-Path $stage 'assets\ppt') -Recurse
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -39,6 +42,7 @@ $arguments = @(
   '/codepage:65001',
   ('/out:' + $out),
   ('/win32icon:' + (Join-Path $PSScriptRoot 'prism.ico')),
+  '/r:System.Web.Extensions.dll',
   ('/win32manifest:' + (Join-Path $PSScriptRoot 'app.manifest')),
   ('/resource:' + $zip + ',PrismLab.app.zip'),
   '/reference:System.dll',

@@ -2,11 +2,11 @@
 
 [中文](#zh) · [English](#en)
 
-> **v0.6.1** · 22 个高中物理实验 · 统一字体层级 · 无文字大缩略图 · Bing 壁纸 · 性能优化
+> **v0.6.2** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
 >
-> 22 high-school physics experiments · unified type scale · clean thumbnails · Bing wallpapers · performance tuning
+> 22 high-school physics experiments · rAF scroll sync · Wallpaper Engine live background · faster startup
 
-[![Version](https://img.shields.io/badge/version-0.6.1-0a84ff)](#)
+[![Version](https://img.shields.io/badge/version-0.6.2-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
@@ -27,6 +27,7 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 项目完全由 **HTML + CSS + JavaScript** 编写，不依赖后端、不需要安装 Node.js 或编译工具，双击即可运行。无需动态链接库，也不依赖外部 CDN。
 
 - 产品需求文档：[PRD.md](PRD.md)
+- 0.6.2 新增：滚动与背景同步到 rAF、启动资源按需加载、Wallpaper Engine 实时动态背景、按钮与控件质感优化
 - 0.6.1 新增：统一字体层级、无文字大缩略图、细腻滚动条、渲染性能优化、Bing 每日壁纸与系统壁纸 API 自动查找
 - 0.6.0 新增：性能与动效设置、毛玻璃、动画速度、内置/上传/联网/桌面 API 背景、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 联动
 
@@ -54,7 +55,7 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 ### 方式四：便携 EXE（分享给其他人）
 
-**`dist/PrismLab-0.6.1.exe`** 是单文件便携版，适用于 Windows 10 / 11：
+**`dist/PrismLab-0.6.2.exe`** 是单文件便携版，适用于 Windows 10 / 11：
 
 1. 把 exe 复制到任意目录，双击运行；
 2. 程序内置全部 HTML / CSS / JavaScript，不需要联网、不需要安装；
@@ -109,6 +110,10 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 - **统一字体层级**：100%–150% 缩放使用统一字号阶梯，标题、正文、辅助文字保持清晰层级。
 - **细腻滚动条**：设置、About 许可证与主页面使用低对比度细滚动条，不再抢占视觉焦点。
 - **渲染优化**：减少卡片毛玻璃合成层，Canvas 平滑设置只在尺寸变化时更新，后台标签页暂停实验帧。
+- **垂直同步滚动**：滚动事件合并到 `requestAnimationFrame`，背景使用 GPU transform 做轻微视差，减少撕裂感。
+- **Wallpaper Engine**：读取当前壁纸；视频直接播放，场景/网页通过 WE 独立窗口实时捕获为 MJPEG 背景，窗口自动置底。
+- **启动优化**：背景先加载小缩略图再换全图，首屏缩略图前 3 张立即加载、其余延迟，静态资源启用本地缓存。
+- **按钮质感**：主按钮渐变高光、幽灵按钮内阴影、图标按钮边框与筛选 chip 层次统一。
 - **抽屉式侧边栏**：收起时侧边栏以固定宽度整体推入，徽标和文字不缩放；实验库下的学科分类会随进入/离开实验库展开和收起。
 - **关于页**：左下角“关于”在右侧主区域展示版本、最近更新、GitHub Issues 递交入口、完整 BSD 3-Clause 许可证与 PPT / WPS 联动说明。
 - **PPT / WPS 联动**：拖动实验卡片到 PowerPoint 或 WPS 幻灯片生成实验链接；放映时点击链接即可打开对应实验；实验页也提供「PPT 链接」复制按钮。
@@ -372,6 +377,7 @@ The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive 
 The project is written entirely in **HTML + CSS + JavaScript**. It has no backend, no build step, and no runtime CDN dependency. Open it directly or run the bundled local server.
 
 - Product requirements: [PRD.md](PRD.md) (Chinese)
+- New in 0.6.2: rAF-synchronized scrolling with subtle background parallax, on-demand startup assets, live Wallpaper Engine backgrounds, and polished buttons.
 - New in 0.6.1: unified typography, larger text-free thumbnails, subtle scrollbars, render-performance tuning, Bing daily wallpapers and automatic system wallpaper API discovery.
 - New in 0.6.0: performance controls, glass blur, animation speed, built-in/uploaded/online/desktop-API backgrounds, drawer sidebar, real experiment thumbnails, About page, and PowerPoint / WPS linking.
 
@@ -399,7 +405,7 @@ You can double-click `index.html` directly. For stable local progress storage, p
 
 ### 4. Portable EXE (Windows 10/11)
 
-**`dist/PrismLab-0.6.1.exe`** is a single-file portable build:
+**`dist/PrismLab-0.6.2.exe`** is a single-file portable build:
 
 1. copy it anywhere and double-click;
 2. all HTML / CSS / JavaScript is embedded; no network or installer required;
@@ -452,6 +458,10 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 - **Unified type scale**: 100%–150% zoom follows one coherent type scale while preserving heading, body and caption hierarchy.
 - **Subtle scrollbars**: Settings, the About license and the main page use low-contrast thin scrollbars.
 - **Render tuning**: fewer per-card backdrop-filter layers, Canvas smoothing only on resize, and paused lab frames when the tab is hidden.
+- **rAF scroll sync**: scroll events are coalesced into `requestAnimationFrame`, with a subtle GPU-transform background parallax.
+- **Wallpaper Engine**: video wallpapers play directly; scene/web wallpapers are captured live from a WE pop-out window as an MJPEG background, auto-positioned behind the app.
+- **Faster startup**: a small background thumbnail paints first, the first three card thumbnails load eagerly, the rest are lazy, and static assets are cached locally.
+- **Button polish**: gradient primary buttons, inset glass highlights, bordered icon buttons and consistent filter chips.
 - **Drawer sidebar**: the sidebar slides in/out at a fixed width, so the school emblem and typography never scale; the subject list under the library expands on entry and collapses on exit.
 - **About page**: version, recent changelog, GitHub Issues entry, full BSD 3-Clause license and PowerPoint / WPS instructions in the main panel.
 - **PowerPoint / WPS linking**: drag an experiment card into a PowerPoint or WPS slide to create a hyperlink; clicking it during the slideshow opens the experiment. A **PPT Link** button is also available in each lab.
