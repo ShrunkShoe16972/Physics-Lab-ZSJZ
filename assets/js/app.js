@@ -30,6 +30,7 @@
     glassBlur: Number.isFinite(Number(U.load().glassBlur)) ? Number(U.load().glassBlur) : 18,
     animSpeed: Number.isFinite(Number(U.load().animSpeed)) ? Number(U.load().animSpeed) : 1,
     background: U.load().background || 'mountain-lake',
+    bgMode: ['cover', 'contain', 'stretch', 'tile', 'center'].indexOf(U.load().bgMode) >= 0 ? U.load().bgMode : 'cover',
     bgImage: U.load().bgImage || '',
     wallpaperApi: U.load().wallpaperApi || '',
     wallpaperProvider: U.load().wallpaperProvider === 'wikimedia' ? 'wikimedia' : 'bing',
@@ -101,6 +102,14 @@
     }
   }
 
+  function applyBackgroundMode(mode, persist) {
+    const allowed = ['cover', 'contain', 'stretch', 'tile', 'center'];
+    state.bgMode = allowed.indexOf(mode) >= 0 ? mode : 'cover';
+    allowed.forEach((m) => document.body.classList.remove('bg-' + m));
+    document.body.classList.add('bg-' + state.bgMode);
+    if (persist !== false) U.save({ bgMode: state.bgMode });
+  }
+
   function applyPerformance(persist) {
     state.uiOpacity = Math.max(0, Math.min(100, Number(state.uiOpacity)));
     state.glassBlur = Math.max(0, Math.min(20, Number(state.glassBlur)));
@@ -108,6 +117,7 @@
     document.body.style.setProperty('--ui-veil', String(state.uiOpacity / 100));
     document.body.style.setProperty('--glass-blur', state.glassBlur + 'px');
     document.body.style.setProperty('--anim-scale', String(1 / state.animSpeed));
+    applyBackgroundMode(state.bgMode, false);
     const appBg = $('#appBackground');
     if (appBg) {
       let url = '';
@@ -125,14 +135,14 @@
             }
           }, 140);
           syncPerformanceControls();
-          if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, wallpaperApi: state.wallpaperApi, wallpaperProvider: state.wallpaperProvider });
+          if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, bgMode: state.bgMode, wallpaperApi: state.wallpaperApi, wallpaperProvider: state.wallpaperProvider });
           return;
         }
       }
       appBg.style.backgroundImage = url ? 'url("' + url.replace(/"/g, '%22') + '")' : 'none';
     }
     syncPerformanceControls();
-    if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, wallpaperApi: state.wallpaperApi, wallpaperProvider: state.wallpaperProvider });
+    if (persist !== false) U.save({ uiOpacity: state.uiOpacity, glassBlur: state.glassBlur, animSpeed: state.animSpeed, background: state.background, bgImage: state.bgImage, bgMode: state.bgMode, wallpaperApi: state.wallpaperApi, wallpaperProvider: state.wallpaperProvider });
     if (state.currentLab) {
       state.currentLab.view.dirty = true;
       if (state.currentLab.chart) setTimeout(() => state.currentLab && state.currentLab.chart.draw(), 30);
@@ -350,7 +360,12 @@
     }
   }
 
+  let weLiveTimer = null;
+  let weLiveBusy = false;
+
   function clearWeVideo() {
+    if (weLiveTimer) { clearInterval(weLiveTimer); weLiveTimer = null; }
+    weLiveBusy = false;
     const old = $('#weVideoLayer');
     if (old) old.remove();
     const oldLive = $('#weLiveLayer');
@@ -369,11 +384,39 @@
     layer.innerHTML = '<img alt=""><div class="we-video-veil"></div>';
     document.body.appendChild(layer);
     const img = layer.querySelector('img');
-    img.addEventListener('error', () => {
+    let previousUrl = '';
+    let failed = false;
+    const fail = () => {
+      if (failed) return;
+      failed = true;
+      clearWeVideo();
       if (fallback) setBackground(fallback, true);
       toast('Wallpaper Engine 实时画面不可用，已回退预览图', 'error');
-    });
-    img.src = url;
+    };
+    img.addEventListener('error', fail);
+    const fetchFrame = async () => {
+      if (weLiveBusy || failed || document.hidden) return;
+      weLiveBusy = true;
+      try {
+        const res = await fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        const next = URL.createObjectURL(blob);
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('image decode'));
+          img.src = next;
+        });
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        previousUrl = next;
+      } catch (err) {
+        fail();
+      } finally {
+        weLiveBusy = false;
+      }
+    };
+    fetchFrame();
+    weLiveTimer = setInterval(fetchFrame, 50);
     document.body.classList.add('we-video-bg');
     const status = $('[data-we-status]');
     if (status) status.textContent = '实时动态 · ' + (title || 'Wallpaper Engine');
@@ -429,7 +472,7 @@
         if (kind === 'video') {
           applyWeVideo(url, cur.title);
         } else if (kind === 'scene' || kind === 'web') {
-          const liveUrl = base + (base === location.origin ? '/api/wallpaper-engine/live' : '/live');
+          const liveUrl = base + (base === location.origin ? '/api/wallpaper-engine/frame' : '/frame');
           applyWeLive(liveUrl, cur.title, thumb || url);
         } else {
           setBackground(url, true);
@@ -463,6 +506,7 @@
     $$('[data-bg-id]').forEach((b) => b.classList.toggle('active', !state.bgImage && b.dataset.bgId === state.background));
     $$('[data-bg-custom]').forEach((b) => b.classList.toggle('active', !!state.bgImage && b.dataset.bgCustom === 'upload'));
     $$('[data-bg-provider]').forEach((b) => b.classList.toggle('active', b.dataset.bgProvider === state.wallpaperProvider));
+    $$('[data-bg-mode]').forEach((b) => b.classList.toggle('active', b.dataset.bgMode === state.bgMode));
     const api = $('[data-wallpaper-api]');
     if (api && document.activeElement !== api) api.value = state.wallpaperApi || '';
   }
@@ -478,6 +522,13 @@
       '</div></div>' +
       '<div class="settings-block bg-block"><div class="settings-label"><span><b>软件背景</b><em>内置自然与科学图片 · 支持上传、联网搜索和桌面壁纸 API</em></span><span class="pill">' + (state.bgImage ? '自定义' : (BACKGROUNDS.find((b) => b.id === state.background) || BACKGROUNDS[0]).name) + '</span></div>' +
       '<div class="bg-grid">' + cards + '<button class="bg-choice bg-upload' + (state.bgImage ? ' active' : '') + '" data-bg-upload><span class="bg-upload-ico">+</span><span>上传图片</span><em>从本机选择</em></button></div>' +
+      '<div class="bg-mode"><span>显示方式</span><div class="bg-mode-group">' +
+      '<button data-bg-mode="cover" class="' + (state.bgMode === 'cover' ? 'active' : '') + '">填充</button>' +
+      '<button data-bg-mode="contain" class="' + (state.bgMode === 'contain' ? 'active' : '') + '">适应</button>' +
+      '<button data-bg-mode="stretch" class="' + (state.bgMode === 'stretch' ? 'active' : '') + '">拉伸</button>' +
+      '<button data-bg-mode="tile" class="' + (state.bgMode === 'tile' ? 'active' : '') + '">平铺</button>' +
+      '<button data-bg-mode="center" class="' + (state.bgMode === 'center' ? 'active' : '') + '">原尺寸</button>' +
+      '</div></div>' +
       '<div class="bg-tools"><div class="bg-provider"><span>搜索来源</span><button data-bg-provider="bing" class="active">Bing</button><button data-bg-provider="wikimedia">Wikimedia</button></div>' +
       '<div class="bg-search"><input type="text" placeholder="搜索 Bing 壁纸，如：星云 / 森林 / 实验室" data-bg-query><button class="btn ghost small" data-bg-search>联网搜索</button></div>' +
       '<div class="bg-search"><input type="text" placeholder="桌面壁纸 API 地址，或点击自动查找" data-wallpaper-api><button class="btn ghost small" data-wallpaper-sync>同步</button><button class="btn ghost small" data-wallpaper-discover>自动查找</button></div></div>' +
@@ -1154,28 +1205,28 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.2</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.3</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.6.2</strong><span>2026-11-15</span></div>' +
-      '<p>当前版本聚焦垂直同步滚动、启动速度、Wallpaper Engine 动态背景与按钮质感。</p>' +
+      '<div class="about-version-row"><strong>0.6.3</strong><span>2026-11-15</span></div>' +
+      '<p>当前版本聚焦 Wallpaper Engine 隐藏窗口、动态壁纸帧率与清晰度、背景显示方式。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.6.2</b><span>2026-11-15</span><p>滚动内容与背景同步到 rAF；启动资源按需加载；Wallpaper Engine 实时动态背景；按钮与控件质感优化。</p></div>' +
-      '<div><b>0.6.1</b><span>2026-11-15</span><p>统一字体层级、放大无文字缩略图、细腻滚动条、渲染性能优化、Bing 默认壁纸搜索与系统 API 自动查找。</p></div>' +
-      '<div><b>0.6.0</b><span>2026-11-15</span><p>性能与背景设置、抽屉式侧边栏、真实实验缩略图、关于页、PPT / WPS 链接联动。</p></div></div></section>' +
+      '<div class="about-changelog"><div><b>0.6.3</b><span>2026-11-15</span><p>Wallpaper Engine 窗口移出桌面并隐藏任务栏图标；提升动态捕获帧率与 JPEG 清晰度；新增填充、适应、拉伸、平铺、原尺寸五种背景显示方式。</p></div>' +
+      '<div><b>0.6.2</b><span>2026-11-15</span><p>滚动内容与背景同步到 rAF；启动资源按需加载；Wallpaper Engine 实时动态背景；按钮与控件质感优化。</p></div>' +
+      '<div><b>0.6.1</b><span>2026-11-15</span><p>统一字体层级、放大无文字缩略图、细腻滚动条、渲染性能优化、Bing 默认壁纸搜索与系统 API 自动查找。</p></div></div></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>BSD 3-Clause License</h2><span class="pill">LICENSE</span></div>' +
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.2-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.3-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
-      '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸通过 Wallpaper Engine 窗口实时捕获并置底，不会占用桌面焦点。</p>' +
-      '<p class="about-muted">需要本机安装 Wallpaper Engine；便携版内置只读 API，不修改壁纸设置。场景窗口以 1280×720、约 15fps 捕获；视频保持原始清晰度。</p></section>' +
+      '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
+      '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
       '</div></div>';
   }
 
@@ -1920,6 +1971,8 @@
     if (e.target.closest('[data-bg-search]')) { const q = $('[data-bg-query]'); searchWallpapers(q ? q.value : ''); return; }
     if (e.target.closest('[data-wallpaper-discover]')) { discoverWallpaperApi(); return; }
     if (e.target.closest('[data-we-sync]')) { syncWallpaperEngine(); return; }
+    const bgMode = e.target.closest('[data-bg-mode]');
+    if (bgMode) { applyBackgroundMode(bgMode.dataset.bgMode, true); syncPerformanceControls(); toast('背景显示方式：' + bgMode.innerText); return; }
     const provider = e.target.closest('[data-bg-provider]');
     if (provider) { state.wallpaperProvider = provider.dataset.bgProvider === 'wikimedia' ? 'wikimedia' : 'bing'; applyPerformance(true); toast(state.wallpaperProvider === 'bing' ? '壁纸搜索来源：Bing' : '壁纸搜索来源：Wikimedia'); return; }
     if (e.target.closest('[data-wallpaper-sync]')) { syncDesktopWallpaper(); return; }

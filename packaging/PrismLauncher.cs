@@ -459,8 +459,9 @@ namespace PrismLab
             running = false;
             try
             {
-                IntPtr hwnd = FindWallpaperWindow();
-                if (hwnd != IntPtr.Zero) PostMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                liveWindow = IntPtr.Zero;
+                lock (liveFrameLock) { liveFrame = null; }
+                CloseAllWallpaperWindows();
             }
             catch
             {
@@ -528,6 +529,7 @@ namespace PrismLab
 
         private void HandleClient(TcpClient client)
         {
+            client.NoDelay = true;
             client.ReceiveTimeout = 5000;
             client.SendTimeout = 5000;
             NetworkStream stream = client.GetStream();
@@ -592,8 +594,90 @@ namespace PrismLab
             if (path.EndsWith("/health", StringComparison.OrdinalIgnoreCase))
             {
                 WriteJson(stream, new Dictionary<string, object> {
-                    { "ok", true }, { "service", "prism-wallpaper-engine" }, { "version", "1.0" }
+                    { "ok", true }, { "service", "prism-wallpaper-engine" }, { "version", "1.0" },
+                    { "pump", livePump != null && livePump.IsAlive }, { "frame", liveFrame == null ? 0 : liveFrame.Length },
+                    { "window", liveWindow.ToInt64() }
                 });
+                return;
+            }
+
+            if (path.EndsWith("/testcapture", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    Dictionary<string, object> current = ReadCurrentWallpaper();
+                    string project = current == null ? "" : Str(current, "project");
+                    IntPtr hwnd = string.IsNullOrEmpty(project) ? IntPtr.Zero : EnsureWallpaperWindow(project);
+                    byte[] jpeg = hwnd == IntPtr.Zero ? null : CaptureWindowJpeg(hwnd);
+                    int loopCount = 0;
+                    long loopMs = 0;
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+                        for (int i = 0; i < 8; i++)
+                        {
+                            byte[] frame = CaptureWindowJpeg(hwnd);
+                            if (frame == null || frame.Length == 0) break;
+                            loopCount++;
+                        }
+                        loopMs = watch.ElapsedMilliseconds;
+                    }
+                    int weBytes = -1;
+                    string weError = "";
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        try
+                        {
+                            using (WeCapture capture = new WeCapture(hwnd))
+                            {
+                                byte[] weJpeg = capture.Grab();
+                                weBytes = weJpeg == null ? 0 : weJpeg.Length;
+                            }
+                        }
+                        catch (Exception weEx) { weError = weEx.ToString(); }
+                    }
+                    WriteJson(stream, new Dictionary<string, object> {
+                        { "ok", jpeg != null && jpeg.Length > 0 }, { "hwnd", hwnd.ToInt64() },
+                        { "bytes", jpeg == null ? 0 : jpeg.Length }, { "weBytes", weBytes },
+                        { "loopCount", loopCount }, { "loopMs", loopMs }, { "weError", weError }, { "temp", Path.GetTempPath() }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    WriteJson(stream, new Dictionary<string, object> { { "ok", false }, { "error", ex.ToString() } });
+                }
+                return;
+            }
+
+            if (path.EndsWith("/frame", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    IntPtr hwnd = liveWindow;
+                    if (hwnd == IntPtr.Zero || !IsWindow(hwnd))
+                    {
+                        Dictionary<string, object> current = ReadCurrentWallpaper();
+                        string project = current == null ? "" : Str(current, "project");
+                        hwnd = string.IsNullOrEmpty(project) ? IntPtr.Zero : EnsureWallpaperWindow(project);
+                        liveWindow = hwnd;
+                    }
+                    if (hwnd != IntPtr.Zero) EnsureLivePump();
+                    byte[] jpeg = WaitForLiveFrame(800);
+                    if (jpeg == null && hwnd != IntPtr.Zero) jpeg = CaptureWindowJpeg(hwnd);
+                    if (jpeg == null || jpeg.Length == 0)
+                    {
+                        liveWindow = IntPtr.Zero;
+                        WriteResponse(stream, 503, "Service Unavailable", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("Wallpaper Engine frame unavailable"));
+                    }
+                    else
+                    {
+                        WriteResponse(stream, 200, "OK", "image/jpeg", jpeg, "no-store");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteResponse(stream, 500, "Internal Server Error", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(ex.Message));
+                }
                 return;
             }
 
@@ -657,6 +741,7 @@ namespace PrismLab
 
         private void HandleWallpaperLive(NetworkStream stream)
         {
+            LiveLog("live request");
             Dictionary<string, object> current = ReadCurrentWallpaper();
             if (current == null)
             {
@@ -672,6 +757,7 @@ namespace PrismLab
             }
 
             IntPtr hwnd = EnsureWallpaperWindow(project);
+            LiveLog("window " + hwnd);
             if (hwnd == IntPtr.Zero)
             {
                 WriteResponse(stream, 503, "Service Unavailable", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("Wallpaper Engine live window unavailable"));
@@ -685,6 +771,7 @@ namespace PrismLab
             byte[] headerBytes = Encoding.ASCII.GetBytes(header);
             stream.Write(headerBytes, 0, headerBytes.Length);
             stream.Flush();
+            WeCapture capture = null;
             try
             {
                 while (running)
@@ -698,15 +785,25 @@ namespace PrismLab
                     stream.WriteByte(13);
                     stream.WriteByte(10);
                     stream.Flush();
-                    Thread.Sleep(66);
+                    Thread.Sleep(33);
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                LiveLog(ex.ToString());
+            }
+            finally
+            {
+                if (capture != null) capture.Dispose();
             }
         }
 
         private static string liveProject = "";
+        private static IntPtr liveWindow = IntPtr.Zero;
+        private static Thread livePump = null;
+        private static byte[] liveFrame = null;
+        private static readonly object liveFrameLock = new object();
+        private static readonly string LiveWindowTitle = "PrismWE-" + Process.GetCurrentProcess().Id;
         private static readonly object liveLock = new object();
 
         private static IntPtr EnsureWallpaperWindow(string project)
@@ -716,13 +813,14 @@ namespace PrismLab
                 IntPtr hwnd = FindWallpaperWindow();
                 if (hwnd != IntPtr.Zero && liveProject == project)
                 {
-                    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    liveWindow = hwnd;
+                    HideWallpaperWindow(hwnd);
                     return hwnd;
                 }
                 if (hwnd != IntPtr.Zero)
                 {
-                    PostMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-                    Thread.Sleep(250);
+                    CloseAllWallpaperWindows();
+                    Thread.Sleep(300);
                 }
 
                 string root = FindWallpaperEngineRoot();
@@ -741,7 +839,7 @@ namespace PrismLab
                     catch { }
                 }
 
-                string args = "-control openWallpaper -file \"" + project.Replace("\"", "") + "\" -playInWindow \"PrismWE\" -width 1280 -height 720 -borderless -x 0 -y 0";
+                string args = "-control openWallpaper -file \"" + project.Replace("\"", "") + "\" -playInWindow \"" + LiveWindowTitle + "\" -width 1280 -height 720 -borderless -x -20000 -y -20000";
                 try { Process.Start(exe, args); }
                 catch { return IntPtr.Zero; }
 
@@ -754,15 +852,75 @@ namespace PrismLab
                 if (hwnd != IntPtr.Zero)
                 {
                     liveProject = project;
-                    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                    liveWindow = hwnd;
+                    HideWallpaperWindow(hwnd);
                 }
                 return hwnd;
             }
         }
 
+        private void EnsureLivePump()
+        {
+            if (livePump != null && livePump.IsAlive) return;
+            livePump = new Thread(delegate()
+            {
+                while (running)
+                {
+                    IntPtr hwnd = liveWindow;
+                    if (hwnd == IntPtr.Zero || !IsWindow(hwnd)) break;
+                    byte[] jpeg = CaptureWindowJpeg(hwnd);
+                    if (jpeg != null && jpeg.Length > 0)
+                    {
+                        lock (liveFrameLock) { liveFrame = jpeg; }
+                    }
+                    Thread.Sleep(20);
+                }
+                livePump = null;
+            });
+            livePump.IsBackground = true;
+            livePump.Name = "Prism wallpaper frames";
+            livePump.Start();
+        }
+
+        private static byte[] WaitForLiveFrame(int timeoutMs)
+        {
+            int start = Environment.TickCount;
+            while (Environment.TickCount - start < timeoutMs)
+            {
+                lock (liveFrameLock)
+                {
+                    if (liveFrame != null && liveFrame.Length > 0) return liveFrame;
+                }
+                Thread.Sleep(20);
+            }
+            return null;
+        }
+
+        private static void CloseAllWallpaperWindows()
+        {
+            string root = FindWallpaperEngineRoot();
+            string exe = !string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "wallpaper64.exe"))
+                ? Path.Combine(root, "wallpaper64.exe")
+                : (!string.IsNullOrEmpty(root) ? Path.Combine(root, "wallpaper32.exe") : "");
+            for (int i = 0; i < 6; i++)
+            {
+                IntPtr hwnd = FindWindow(null, LiveWindowTitle);
+                if (hwnd == IntPtr.Zero) break;
+                try
+                {
+                    if (!string.IsNullOrEmpty(exe) && File.Exists(exe))
+                        Process.Start(exe, "-control closeWallpaper -location \"" + LiveWindowTitle + "\"");
+                }
+                catch { }
+                PostMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                Thread.Sleep(220);
+            }
+        }
+
         private static IntPtr FindWallpaperWindow()
         {
-            string[] names = new string[] { "wallpaper64", "wallpaper32" };
+            IntPtr direct = FindWindow(null, LiveWindowTitle);
+            if (direct != IntPtr.Zero) return direct;            string[] names = new string[] { "wallpaper64", "wallpaper32" };
             foreach (string name in names)
             {
                 Process[] processes = Process.GetProcessesByName(name);
@@ -770,7 +928,7 @@ namespace PrismLab
                 {
                     try
                     {
-                        if (process.MainWindowHandle != IntPtr.Zero && string.Equals(process.MainWindowTitle, "PrismWE", StringComparison.Ordinal))
+                        if (process.MainWindowHandle != IntPtr.Zero && string.Equals(process.MainWindowTitle, LiveWindowTitle, StringComparison.Ordinal))
                             return process.MainWindowHandle;
                     }
                     catch { }
@@ -778,6 +936,74 @@ namespace PrismLab
                 }
             }
             return IntPtr.Zero;
+        }
+
+        private static void HideWallpaperWindow(IntPtr hwnd)
+        {
+            try
+            {
+                int style = GetWindowLong(hwnd, GWL_EXSTYLE);
+                style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW;
+                SetWindowLong(hwnd, GWL_EXSTYLE, style);
+                SetWindowPos(hwnd, HWND_BOTTOM, -20000, -20000, 1280, 720, SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            }
+            catch { }
+        }
+
+        private sealed class WeCapture : IDisposable
+        {
+            private readonly IntPtr hwnd;
+            private readonly Bitmap bitmap;
+            private readonly MemoryStream buffer;
+            private readonly ImageCodecInfo codec;
+            private readonly EncoderParameters parameters;
+
+            public WeCapture(IntPtr window)
+            {
+                hwnd = window;
+                RECT rect;
+                if (!GetWindowRect(hwnd, out rect)) throw new InvalidOperationException("Wallpaper Engine window unavailable");
+                int width = Math.Max(1, rect.Right - rect.Left);
+                int height = Math.Max(1, rect.Bottom - rect.Top);
+                bitmap = new Bitmap(width, height);
+                buffer = new MemoryStream(256 * 1024);
+                foreach (ImageCodecInfo item in ImageCodecInfo.GetImageEncoders())
+                {
+                    if (item.FormatID == ImageFormat.Jpeg.Guid) { codec = item; break; }
+                }
+                parameters = new EncoderParameters(1);
+                parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 80L);
+            }
+
+            public byte[] Grab()
+            {
+                try
+                {
+                    using (Graphics graphics = Graphics.FromImage(bitmap))
+                    {
+                        IntPtr hdc = graphics.GetHdc();
+                        try { PrintWindow(hwnd, hdc, 2); }
+                        finally { graphics.ReleaseHdc(hdc); }
+                    }
+                    buffer.SetLength(0);
+                    if (codec != null) bitmap.Save(buffer, codec, parameters);
+                    else bitmap.Save(buffer, ImageFormat.Jpeg);
+                    return buffer.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "prism-we-live-error.log"), DateTime.Now.ToString("s") + " capture: " + ex + Environment.NewLine); }
+                    catch { }
+                    return null;
+                }
+            }
+
+            public void Dispose()
+            {
+                try { parameters.Dispose(); } catch { }
+                try { buffer.Dispose(); } catch { }
+                try { bitmap.Dispose(); } catch { }
+            }
         }
 
         private static byte[] CaptureWindowJpeg(IntPtr hwnd)
@@ -809,7 +1035,7 @@ namespace PrismLab
                         {
                             using (EncoderParameters parameters = new EncoderParameters(1))
                             {
-                                parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 68L);
+                                parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 82L);
                                 bitmap.Save(ms, jpegCodec, parameters);
                             }
                         }
@@ -833,13 +1059,35 @@ namespace PrismLab
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
         [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         private static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
         private const uint SWP_NOSIZE = 0x0001;
         private const uint SWP_NOMOVE = 0x0002;
         private const uint SWP_NOACTIVATE = 0x0010;
+        private const uint SWP_FRAMECHANGED = 0x0020;
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
+        private const int WS_EX_APPWINDOW = 0x00040000;
         private const uint WM_CLOSE = 0x0010;
+
+        private static void LiveLog(string message)
+        {
+            try { File.AppendAllText(Path.Combine(Path.GetTempPath(), "prism-we-live-error.log"), DateTime.Now.ToString("HH:mm:ss.fff") + " " + message + Environment.NewLine); }
+            catch { }
+        }
 
         private static void WriteJson(NetworkStream stream, Dictionary<string, object> value)
         {
