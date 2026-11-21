@@ -269,7 +269,7 @@
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 36 });
       const f = K.frame(ctx, w, h);
-      const ox = 322, oy = 352, sc = 29;
+      const ox = 330, oy = 342, sc = 28;
       const th = U.deg(state.angle);
       const x1 = state.f1, x2 = state.f2 * Math.cos(th), y2 = state.f2 * Math.sin(th);
       const p1 = { x: ox + x1 * sc, y: oy };
@@ -278,33 +278,64 @@
       const F = Math.sqrt(state.f1 * state.f1 + state.f2 * state.f2 + 2 * state.f1 * state.f2 * Math.cos(th));
       const alpha = U.rad(Math.atan2(state.f2 * Math.sin(th), state.f1 + state.f2 * Math.cos(th)));
 
-      // faint grid lines
+      // experiment board, white paper and fixed rubber band
+      K.panel(ctx, 40, 44, 826, 390, { fill: 'rgba(31,45,68,.42)', stroke: 'rgba(150,180,220,.14)' });
+      K.panel(ctx, 68, 68, 770, 338, { r: 5, fill: '#f2eee2', stroke: 'rgba(128,116,92,.28)' });
+      C.label(ctx, '白纸 · 记录结点 O 与两分力方向', 84, 88, { size: 8.5, color: 'rgba(56,66,80,.62)' });
+      const pinX = 176, pinY = oy;
+      C.line(ctx, pinX, pinY - 7, pinX, pinY + 7, '#5b6470', 2);
+      C.line(ctx, pinX, pinY, ox - 4, oy, 'rgba(170,116,58,.75)', 4);
+      C.dot(ctx, ox, oy, 4.5, '#fff', 8);
+      C.label(ctx, '橡皮条', (pinX + ox) / 2, oy + 15, { size: 7.5, align: 'center', color: 'rgba(110,78,42,.72)' });
+      C.label(ctx, '固定图钉', pinX, pinY + 18, { size: 7, align: 'center', color: 'rgba(56,66,80,.52)' });
+
+      // faint grid lines on paper
       for (let i = 1; i <= 10; i++) {
-        C.line(ctx, ox + i * sc, 54, ox + i * sc, 410, 'rgba(255,255,255,.032)', 1);
-        C.line(ctx, 62, oy - i * sc, 840, oy - i * sc, 'rgba(255,255,255,.032)', 1);
+        C.line(ctx, ox + i * sc, 78, ox + i * sc, 394, 'rgba(60,80,110,.075)', 1);
+        C.line(ctx, 80, oy - i * sc, 828, oy - i * sc, 'rgba(60,80,110,.075)', 1);
       }
-      // parallelogram
-      C.line(ctx, p1.x, p1.y, pr.x, pr.y, 'rgba(190,205,255,.36)', 1, [5, 5]);
-      C.line(ctx, p2.x, p2.y, pr.x, pr.y, 'rgba(190,205,255,.36)', 1, [5, 5]);
+      // spring scales (bodies) along the two measured forces
+      function springScale(x1p, y1p, x2p, y2p, col) {
+        const dx = x2p - x1p, dy = y2p - y1p, len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len, uy = dy / len;
+        const ax = x1p + ux * 16, ay = y1p + uy * 16, bx = x2p - ux * 18, by = y2p - uy * 18;
+        const nx = -uy, ny = ux;
+        ctx.save();
+        ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(x1p, y1p, 4, 0, Math.PI * 2); ctx.stroke();
+        C.fillRound(ctx, ax, ay - 6, Math.max(10, bx - ax), 12, 5, 'rgba(228,233,240,.92)');
+        ctx.strokeStyle = 'rgba(62,74,92,.55)'; ctx.strokeRect(ax, ay - 6, Math.max(10, bx - ax), 12);
+        for (let k = 1; k < 6; k++) {
+          const xx = ax + (bx - ax) * k / 6;
+          C.line(ctx, xx, ay - 5, xx, ay + 5, 'rgba(70,84,104,.45)', .7);
+        }
+        C.line(ctx, ax, ay, bx, by, col, 1);
+        ctx.restore();
+      }
+      springScale(ox, oy, p1.x, p1.y, '#d9902f');
+      springScale(ox, oy, p2.x, p2.y, '#2d9f59');
+      // dashed parallelogram
+      C.line(ctx, p1.x, p1.y, pr.x, pr.y, 'rgba(70,100,160,.52)', 1.2, [5, 5]);
+      C.line(ctx, p2.x, p2.y, pr.x, pr.y, 'rgba(70,100,160,.52)', 1.2, [5, 5]);
       // angle arc
-      K.arc(ctx, ox, oy, 58, -th, 0, 'rgba(255,179,64,.55)', 1.2);
-      C.label(ctx, 'θ = ' + state.angle + '°', ox + 63, oy - 34, { size: 8.5, color: '#ffb340', mono: true });
+      K.arc(ctx, ox, oy, 58, -th, 0, 'rgba(200,120,35,.75)', 1.2);
+      C.label(ctx, 'θ = ' + state.angle + '°', ox + 63, oy - 34, { size: 8.5, color: '#a96613', mono: true });
 
       // vectors
-      C.arrow(ctx, ox, oy, p1.x, p1.y, { color: '#ffb340', width: 2.8, head: 11, glow: 7 });
-      C.arrow(ctx, ox, oy, p2.x, p2.y, { color: '#30d158', width: 2.8, head: 11, glow: 7 });
-      C.arrow(ctx, ox, oy, pr.x, pr.y, { color: '#7aa8ff', width: 3.4, head: 13, glow: 12 });
+      C.arrow(ctx, ox, oy, p1.x, p1.y, { color: '#ffb340', width: 2.2, head: 9, glow: 5 });
+      C.arrow(ctx, ox, oy, p2.x, p2.y, { color: '#30d158', width: 2.2, head: 9, glow: 5 });
+      C.arrow(ctx, ox, oy, pr.x, pr.y, { color: '#3d6fca', width: 2.8, head: 11, glow: 8 });
       C.dot(ctx, ox, oy, 4.2, '#fff', 9);
 
       // labels
       C.label(ctx, 'F₁ = ' + U.fmt(state.f1, 1) + ' N', p1.x + 10, p1.y + 17, { size: 9, color: '#ffb340', mono: true });
       C.label(ctx, 'F₂ = ' + U.fmt(state.f2, 1) + ' N', p2.x - 7, p2.y - 10, { size: 9, color: '#30d158', align: 'right', mono: true });
       C.label(ctx, 'F合 = ' + U.fmt(F, 2) + ' N', pr.x + 11, pr.y - 4, { size: 10.5, color: '#9ec1ff', mono: true, weight: 600 });
-      C.label(ctx, 'O', ox - 3, oy + 19, { size: 9, color: 'rgba(230,240,255,.55)' });
+      C.label(ctx, 'O', ox - 3, oy + 19, { size: 9, color: 'rgba(30,42,58,.72)' });
 
       // resultant angle
-      C.arrow(ctx, 78, 76, 78, 106, { color: 'rgba(255,255,255,.25)', width: 1, head: 4 });
-      C.label(ctx, '合力方向 α = ' + U.fmt(alpha, 1) + '°', 88, 96, { size: 8.5, color: 'rgba(230,240,255,.38)', mono: true });
+      C.arrow(ctx, 78, 76, 78, 106, { color: 'rgba(30,42,58,.35)', width: 1, head: 4 });
+      C.label(ctx, '合力方向 α = ' + U.fmt(alpha, 1) + '°', 88, 96, { size: 8.5, color: 'rgba(30,42,58,.62)', mono: true });
 
       // formula panel
       K.panel(ctx, 598, 54, 246, 126, { fill: 'rgba(10,16,28,.62)' });

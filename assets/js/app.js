@@ -29,7 +29,7 @@
     uiOpacity: Number.isFinite(Number(U.load().uiOpacity)) ? Number(U.load().uiOpacity) : 72,
     glassBlur: Number.isFinite(Number(U.load().glassBlur)) ? Number(U.load().glassBlur) : 18,
     animSpeed: Number.isFinite(Number(U.load().animSpeed)) ? Number(U.load().animSpeed) : 1,
-    background: U.load().background || 'mountain-lake',
+    background: U.load().background || 'gate',
     bgMode: ['cover', 'contain', 'stretch', 'tile', 'center'].indexOf(U.load().bgMode) >= 0 ? U.load().bgMode : 'cover',
     bgImage: U.load().bgImage || '',
     wallpaperApi: U.load().wallpaperApi || '',
@@ -38,6 +38,7 @@
   };
 
   const BACKGROUNDS = [
+    { id: 'gate', name: '纪中牌坊', file: 'gate.jpg', tone: '校园' },
     { id: 'mountain-lake', name: '山湖晨光', file: 'mountain-lake.jpg', tone: '自然' },
     { id: 'forest-mist', name: '雾中森林', file: 'forest-mist.jpg', tone: '自然' },
     { id: 'galaxy', name: '深空星系', file: 'galaxy.jpg', tone: '科学' },
@@ -45,6 +46,31 @@
     { id: 'laboratory', name: '实验室光影', file: 'laboratory.jpg', tone: '科学' },
     { id: 'ocean', name: '海岸浪涌', file: 'ocean.jpg', tone: '自然' }
   ];
+
+  const MISTAKES = {
+    'accelerated-motion': ['打点计时器应先接通电源，再释放纸带。', '纸带与限位孔摩擦会造成加速度偏小。', '计算加速度时要用逐差法，不能只取首末两点。'],
+    'hooke-law': ['弹簧竖直悬挂时未扣除弹簧自重。', '读数时视线没有与指针刻度平齐。', '超过弹性限度后继续加钩码，F–x 不再成直线。'],
+    'force-parallelogram': ['两次拉橡皮条时结点 O 没有拉到同一位置。', '弹簧测力计没有与木板平行，读数偏小。', '作图时两个分力的标度不统一。'],
+    'newton-second': ['忘记平衡摩擦力，a–F 图线不过原点。', '钩码质量没有远小于小车质量，绳中拉力不等于钩码重力。', '改变小车质量后没有重新平衡摩擦力。'],
+    'projectile': ['斜槽末端没有调水平，小球初速度不水平。', '小球没有从同一位置由静止释放。', '坐标原点没有取在槽口末端。'],
+    'centripetal': ['皮带没有张紧，塔轮打滑使角速度读数偏小。', '小球没有放在挡板同一侧，半径读数错误。', '转动手柄速度不稳定，应等匀速后再读数。'],
+    'work-energy': ['没有平衡摩擦力，合外力做功不等于橡皮筋做功。', '橡皮筋条数增加时长度没有保持一致。', '应取纸带上点距均匀的部分计算小车末速度。'],
+    'mechanical-energy': ['释放点高度测量应取摆球球心。', '摆球应在同一竖直平面内摆动，避免圆锥摆。', '空气阻力使总机械能逐渐减小。'],
+    'momentum': ['气垫导轨没有调水平，系统合外力不为零。', '光电门宽度与挡光时间必须对应。', '速度方向没有规定正方向，动量符号易错。'],
+    'simple-pendulum': ['摆角应小于 5°，否则周期公式不再适用。', '摆长应量到摆球球心，而不是摆线末端。', '应从最低点开始计时，测量多个全周期取平均。'],
+    'resistivity': ['金属丝直径要在不同位置多次测量取平均。', '电流不宜过大，避免金属丝发热改变电阻率。', '伏安法接法选择错误会引入明显系统误差。'],
+    'bulb-curve': ['小灯泡电阻随温度升高而增大，不能用定值电阻代替。', '电压表分流使电流读数偏大，应采用安培计外接。', '调节电压应从零开始，避免灯丝烧断。'],
+    'emf-internal': ['电流表应串联在干路，电压表并联在路端。', '干电池不宜长时间大电流放电，内阻会变化。', 'U–I 图线纵截距为电动势，斜率为内阻。'],
+    'multimeter': ['测电阻前必须断开电源，不能带电测量。', '换挡后要重新欧姆调零。', '红黑表笔插孔和量程选择不能混淆。'],
+    'ampere-force': ['导线应垂直磁场放置，否则安培力不是 F=BIL。', '导轨接触不良会使电流不稳定。', '判断方向要用左手定则，注意电流方向。'],
+    'induction': ['磁铁运动方向与电流表偏转方向要对应记录。', '线圈匝数或磁铁速度改变后应重新观察。', '原磁场方向、磁通量变化方向不能混淆。'],
+    'transformer': ['原、副线圈匝数应按接线柱标识读取。', '只能接交流电源，接直流不能持续变压。', '铁芯应闭合，否则漏磁使电压比偏差增大。'],
+    'capacitor': ['电容器充电后不能直接用手短接，应先放电。', '测电容前要确认量程与极性。', 'RC 电路中时间常数应取 R 与 C 的乘积。'],
+    'refraction': ['入射角应相对法线测量，不是相对界面。', '玻璃砖两边平行，插针间距要适当大。', '不能把玻璃砖当镜面，注意折射光线从另一侧射出。'],
+    'double-slit': ['双缝应竖直且与光屏平行。', '单缝与双缝间距要合适，否则条纹太暗。', '测量条纹间距应取多条条纹总宽度再平均。'],
+    'oil-film': ['油酸酒精溶液浓度要准确，滴数要稳定。', '痱子粉要撒得薄而均匀。', '油膜面积用坐标纸数格，不足半格舍去。'],
+    'gas-law': ['注射器密封性要好，推拉时不能漏气。', '应等温度稳定后再读压强和体积。', '压强单位要与体积单位匹配，p–V 图是双曲线。']
+  };
 
   function ui(name) { return (OL.iconsUI[name] || function () { return ''; })(); }
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -725,6 +751,27 @@
     });
   }
 
+  function openMistakes() {
+    const cur = state.currentLab;
+    if (!cur) return;
+    const items = MISTAKES[cur.exp.id] || ['请结合实验步骤检查操作顺序、读数与单位。'];
+    openModal('易错点 · ' + cur.exp.title,
+      '<div class="mistake-list">' + items.map((m, i) => '<div class="mistake-item"><span>' + (i + 1) + '</span><p>' + U.esc(m) + '</p></div>').join('') + '</div>',
+      { sub: '教学提示 · 点击关闭后继续实验', footer: '<button class="btn" data-action="close-modal">我知道了</button>' });
+  }
+
+  function loadSearchHistory() {
+    try { const v = JSON.parse(localStorage.getItem('prism-search-history') || '[]'); return Array.isArray(v) ? v.slice(0, 6) : []; }
+    catch (e) { return []; }
+  }
+  function rememberSearch(q) {
+    q = String(q || '').trim();
+    if (!q) return;
+    const list = loadSearchHistory().filter((x) => x !== q);
+    list.unshift(q);
+    try { localStorage.setItem('prism-search-history', JSON.stringify(list.slice(0, 6))); } catch (e) { }
+  }
+
   let paletteSeq = 0;
   function openPalette() {
     const root = $('#paletteRoot');
@@ -756,19 +803,32 @@
       const hay = [e.title, e.short, e.description, e.formula, (e.tags || []).join(' '), catOf(e).name].join(' ').toLowerCase();
       return !q || hay.indexOf(q) >= 0;
     });
-    if (!items.length) {
+    const history = q ? [] : loadSearchHistory();
+    const historyHTML = history.length ? '<div class="palette-group-label">最近搜索</div><div class="search-history">' + history.map((h) => '<button data-history="' + U.esc(h) + '">' + U.esc(h) + '</button>').join('') + '</div>' : '';
+    const suggestions = q ? items : items.slice(0, 8);
+    if (!suggestions.length && !history.length) {
       list.innerHTML = '<div class="empty-workshop"><p>没有找到匹配的实验</p></div>';
       return;
     }
-    list.innerHTML = '<div class="palette-group-label">实验</div>' + items.map((e, i) => {
+    list.innerHTML = historyHTML + '<div class="palette-group-label">' + (q ? '匹配实验' : '推荐实验') + '</div>' + (suggestions.length ? suggestions.map((e, i) => {
       const cat = catOf(e);
       return '<button class="palette-item' + (i === state.paletteIndex ? ' sel' : '') + '" data-palette-lab="' + e.id + '" style="--accent:' + cat.color + '">' +
         '<span class="pi-ico">' + OL.icon(e.icon) + '</span>' +
         '<span><strong>' + U.esc(e.title) + '</strong><span>' + U.esc(e.short) + '</span></span>' +
         '<span class="pi-tag">' + U.esc(cat.name) + '</span></button>';
-    }).join('');
+    }).join('') : '<div class="empty-workshop"><p>没有找到匹配的实验</p></div>');
     $$('.palette-item', list).forEach((b) => {
-      b.addEventListener('click', () => { closePalette(); navigate('lab/' + b.dataset.paletteLab); });
+      b.addEventListener('click', () => {
+        const input = $('#paletteInput');
+        if (input && input.value.trim()) rememberSearch(input.value);
+        closePalette(); navigate('lab/' + b.dataset.paletteLab);
+      });
+    });
+    $$('[data-history]', list).forEach((b) => {
+      b.addEventListener('click', () => {
+        const input = $('#paletteInput');
+        if (input) { input.value = b.dataset.history; input.dispatchEvent(new Event('input', { bubbles: true })); input.focus(); }
+      });
     });
     const sel = list.querySelector('.palette-item.sel');
     if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -782,7 +842,7 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       const sel = items[state.paletteIndex];
-      if (sel) { const id = sel.dataset.paletteLab; closePalette(); navigate('lab/' + id); }
+      if (sel) { const id = sel.dataset.paletteLab; const input = $('#paletteInput'); if (input && input.value.trim()) rememberSearch(input.value); closePalette(); navigate('lab/' + id); }
     }
   }
 
@@ -973,10 +1033,6 @@
       '<div class="quick-stat"><strong>' + done + '</strong><em>累计完成</em></div>' +
       '<div class="quick-stat"><strong>4</strong><em>学科领域</em></div>' +
       '</div></div>' +
-      '<div class="section-head"><div><h2>实验库</h2><p>选择一个实验，开始你的探究</p></div><button class="section-link" data-route="library">查看全部 ' + ui('arrow') + '</button></div>' +
-      '<div class="filter-row" id="homeFilters"><span class="filter-label">板块</span>' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
-      '<div class="filter-row book-filter-row" id="homeBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
-      '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
       '<section class="workshop-promo card"><div class="wp-ico">' + ui('spark') + '</div><div class="wp-copy"><span class="eyebrow">开放实验工坊</span><h3>不只是使用者，也成为实验设计者。</h3><p>用变量、公式与可视化画布搭建自己的物理实验，导入导出 JSON，或通过插件接口扩展实验室。</p></div><button class="btn ghost" data-route="workshop">进入工坊 ' + ui('arrow') + '</button></section>' +
       '</div>';
     startHero();
@@ -1205,28 +1261,31 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.6.3</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.7.0</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.6.3</strong><span>2026-11-15</span></div>' +
-      '<p>当前版本聚焦 Wallpaper Engine 隐藏窗口、动态壁纸帧率与清晰度、背景显示方式。</p>' +
+      '<div class="about-version-row"><strong>0.7.0</strong><span>2026-11-21</span></div>' +
+      '<p>独立桌面程序、内置实验参数、顶部实验向导、易错点、纪中牌坊壁纸、居中搜索与实验仪器重绘。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.6.3</b><span>2026-11-15</span><p>Wallpaper Engine 窗口移出桌面并隐藏任务栏图标；提升动态捕获帧率与 JPEG 清晰度；新增填充、适应、拉伸、平铺、原尺寸五种背景显示方式。</p></div>' +
-      '<div><b>0.6.2</b><span>2026-11-15</span><p>滚动内容与背景同步到 rAF；启动资源按需加载；Wallpaper Engine 实时动态背景；按钮与控件质感优化。</p></div>' +
-      '<div><b>0.6.1</b><span>2026-11-15</span><p>统一字体层级、放大无文字缩略图、细腻滚动条、渲染性能优化、Bing 默认壁纸搜索与系统 API 自动查找。</p></div></div></section>' +
+      '<div class="about-changelog"><div><b>0.7.0</b><span>2026-11-21</span><p>独立 WebView2 桌面窗口，不再调用 Chrome；实验参数移入实验窗口；实验向导置顶；新增易错点；纪中牌坊默认壁纸；搜索栏居中下拉；电表重绘；修正三个教材实验。</p></div>' +
+      '<div><b>0.6.3</b><span>2026-11-15</span><p>Wallpaper Engine 窗口移出桌面并隐藏任务栏图标；提升动态捕获帧率与 JPEG 清晰度；新增填充、适应、拉伸、平铺、原尺寸五种背景显示方式。</p></div>' +
+      '<div><b>0.6.2</b><span>2026-11-15</span><p>滚动内容与背景同步到 rAF；启动资源按需加载；Wallpaper Engine 实时动态背景；按钮与控件质感优化。</p></div></div></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>BSD 3-Clause License</h2><span class="pill">LICENSE</span></div>' +
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.6.3-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.7.0-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
       '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
       '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
+      '<section class="card about-card about-wide"><div class="about-card-head"><h2>代码签名证书</h2><span class="pill green">CODE SIGNING</span></div>' +
+      '<p>0.7.0 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
+      '<p class="about-muted">证书公钥位于 <code>packaging/certs/PrismLab-CodeSigning.cer</code>。它不是公共 CA 证书，Windows 默认仍可能提示“未知发布者”；可将公钥安装到“受信任的发布者”后消除提示。</p></section>' +
       '</div></div>';
   }
 
@@ -1283,9 +1342,13 @@
       '<p class="lab-sub">' + U.esc(exp.description) + '</p></div>' +
       '<div class="lab-head-right">' + labSwitcher +
       (exp.errorAnalysis ? '<button class="btn ghost small error-analysis-btn" data-action="error-analysis">' + ui('info') + ' 误差分析</button>' : '') +
+      '<button class="btn ghost small mistake-btn" data-action="mistakes">' + ui('info') + ' 易错点</button>' +
       '<button class="btn ghost small" data-action="ppt-link">' + ui('arrow') + ' PPT 链接</button>' +
       '<button class="btn ghost small" data-action="mark-complete">' + ui('check') + ' 标记完成</button><button class="btn ghost small" data-action="csv">' + ui('download') + ' 导出数据</button></div></div>' +
       schemeDock +
+      '<section class="wizard-top card"><div class="wizard-head"><div><h3>实验向导</h3><p>按顺序操作，点击步骤可标记完成</p></div>' +
+      (exp.stepVersions ? '<div class="step-switch"><button data-step-variant="simple" class="' + (view.stepVariant === 'simple' ? 'active' : '') + '">简易</button><button data-step-variant="complex" class="' + (view.stepVariant === 'complex' ? 'active' : '') + '">复杂</button></div>' : '') +
+      '</div><ol class="steps wizard-steps" id="steps">' + stepHTML + '</ol><div class="conclusion" id="conclusion">' + ui('info') + '<span>调整变量并采集数据，结论会在这里更新。</span></div></section>' +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
       '<div class="principle-main"><div class="principle-formula"><div class="formula-tex" id="principleFormula">' + OL.tex.render(display.formulaTex || display.formula, true) + '</div><button class="icon-btn copy-code" id="principleCopy" data-copy="' + U.esc(display.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
       '<p id="principlePrinciple">' + U.esc(display.principle) + '</p>' +
@@ -1293,19 +1356,16 @@
       '</div></section>' +
       '<div class="lab-layout"><section class="stage-card" id="stageCard">' +
       '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span>' + (schemeLabel ? '<span class="scheme-stage-badge" id="schemeStageBadge">' + U.esc(schemeLabel) + '</span>' : '') + '</div>' +
-      '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool stage-expand" data-action="expand" title="放大实验舞台" aria-label="放大实验舞台"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg><span>放大</span></button></div></div>' +
-      '<div class="stage-wrap"><canvas id="labCanvas"></canvas></div>' +
+      '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="toggle-params" id="paramsToggle" title="显示 / 隐藏实验参数"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>参数</span></button><button class="stage-tool" data-action="screenshot" title="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool stage-expand" data-action="expand" title="放大实验舞台" aria-label="放大实验舞台"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg><span>放大</span></button></div></div>' +
+      '<div class="stage-wrap"><canvas id="labCanvas"></canvas>' +
+      '<div class="stage-controls" id="stageControls"><div class="stage-controls-head"><b>实验参数</b><span>实时调节</span></div><div class="controls" id="controls">' + exp.controls.map(controlHTML).join('') + '</div><div class="card-actions"><button class="btn record" data-action="record"><span class="record-dot"></span>采集数据</button><button class="btn ghost small" data-action="reset">' + ui('reset') + '</button></div></div></div>' +
       (canPlay(lab) ? '<div class="stage-tip"><kbd>SPACE</kbd> 播放 / 暂停</div>' : '') +
       '<div class="stage-readouts" id="stageReadouts"></div></section>' +
-      '<aside class="side-stack"><section class="control-card card"><div class="card-head"><h3>实验变量</h3><span class="sub">实时调节</span></div><div class="controls" id="controls">' + exp.controls.map(controlHTML).join('') + '</div><div class="card-actions"><button class="btn record" data-action="record"><span class="record-dot"></span>采集数据</button><button class="btn ghost small" data-action="reset">' + ui('reset') + '</button></div></section>' +
-      '<section class="metric-card card"><div class="card-head"><h3>实时读数</h3><span class="sub">LIVE</span></div><div class="metric-grid" id="metricGrid"></div><div class="control-note" style="margin:11px 0 0"><span>' + ui('info') + '</span><span>' + U.esc(lab.hint || '拖动变量，观察图像如何响应。') + '</span></div></section></aside></div>' +
-      '<div class="lab-bottom"><section class="viz-card card"><div class="viz-head"><div><h3>数据与图像</h3><div class="sub" id="chartSub">实时绘制</div></div><div class="viz-tabs"><button class="active" data-tab="chart">' + ui('chart') + ' 图像</button><button data-tab="table">' + ui('table') + ' 数据表 <span id="recordCount">0</span></button></div></div>' +
+      '<aside class="side-stack"><section class="metric-card card"><div class="card-head"><h3>实时读数</h3><span class="sub">LIVE</span></div><div class="metric-grid" id="metricGrid"></div><div class="control-note" style="margin:11px 0 0"><span>' + ui('info') + '</span><span>' + U.esc(lab.hint || '拖动变量，观察图像如何响应。') + '</span></div></section></aside></div>' +
+      '<div class="lab-bottom single"><section class="viz-card card"><div class="viz-head"><div><h3>数据与图像</h3><div class="sub" id="chartSub">实时绘制</div></div><div class="viz-tabs"><button class="active" data-tab="chart">' + ui('chart') + ' 图像</button><button data-tab="table">' + ui('table') + ' 数据表 <span id="recordCount">0</span></button></div></div>' +
       '<div class="chart-wrap" id="chartWrap"><canvas id="labChart"></canvas><div class="chart-tooltip" id="chartTip"></div></div>' +
       '<div class="data-table-wrap" id="dataTableWrap"></div>' +
-      '<div class="chart-foot" id="chartFoot"></div></section>' +
-      '<section class="guide-card card"><div class="guide-head"><div><h3>实验向导</h3><p>点击步骤可标记完成</p></div>' +
-      (exp.stepVersions ? '<div class="step-switch"><button data-step-variant="simple" class="' + (view.stepVariant === 'simple' ? 'active' : '') + '">简易</button><button data-step-variant="complex" class="' + (view.stepVariant === 'complex' ? 'active' : '') + '">复杂</button></div>' : '') +
-      '</div><ol class="steps" id="steps">' + stepHTML + '</ol><div class="conclusion" id="conclusion">' + ui('info') + '<span>调整变量并采集数据，结论会在这里更新。</span></div></section></div>' +
+      '<div class="chart-foot" id="chartFoot"></div></section></div>' +
       '</div>';
 
     const current = state.currentLab = {
@@ -1804,6 +1864,12 @@
       else if (action === 'open-workshop') navigate('workshop');
       else if (action === 'open-settings') openSettings();
       else if (action === 'error-analysis') openErrorAnalysis();
+      else if (action === 'mistakes') openMistakes();
+      else if (action === 'toggle-params') {
+        const panel = $('#stageControls');
+        if (panel) panel.classList.toggle('collapsed');
+        if (act) act.classList.toggle('active', panel && !panel.classList.contains('collapsed'));
+      }
       else if (action === 'ppt-link') copyLabLink();
       else if (action === 'prev-lab' || action === 'next-lab') {
         if (state.currentLab) {
@@ -1967,7 +2033,7 @@
     const bgChoice = e.target.closest('[data-bg-id]');
     if (bgChoice) { setBackground(bgChoice.dataset.bgId, false); toast('背景已切换'); return; }
     if (e.target.closest('[data-bg-upload]')) { const f = $('[data-bg-file]'); if (f) f.click(); return; }
-    if (e.target.closest('[data-bg-clear]')) { setBackground('mountain-lake', false); toast('已恢复默认背景'); return; }
+    if (e.target.closest('[data-bg-clear]')) { setBackground('gate', false); toast('已恢复默认背景'); return; }
     if (e.target.closest('[data-bg-search]')) { const q = $('[data-bg-query]'); searchWallpapers(q ? q.value : ''); return; }
     if (e.target.closest('[data-wallpaper-discover]')) { discoverWallpaperApi(); return; }
     if (e.target.closest('[data-we-sync]')) { syncWallpaperEngine(); return; }

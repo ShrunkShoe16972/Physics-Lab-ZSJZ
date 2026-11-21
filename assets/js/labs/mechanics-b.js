@@ -35,6 +35,28 @@
         ctx.save(); ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(cx, cy, rp * i / 4, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
       }
+      // textbook-style centripetal-force demonstrator
+      K.panel(ctx, cx - 112, 398, 310, 28, { r: 7, fill: 'rgba(42,55,72,.92)', stroke: 'rgba(160,190,225,.25)' });
+      C.fillRound(ctx, cx - 8, 230, 16, 170, 6, 'rgba(145,158,174,.55)');
+      C.fillRound(ctx, cx - 82, 252, 164, 11, 5, 'rgba(186,197,210,.62)');
+      C.label(ctx, '向心力演示器', cx - 106, 414, { size: 7.5, color: 'rgba(225,236,250,.5)' });
+      // stepped pulleys and belt
+      ctx.beginPath(); ctx.arc(cx, 232, 17, 0, Math.PI * 2); ctx.fillStyle = 'rgba(150,163,180,.55)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 168, 232, 23, 0, Math.PI * 2); ctx.fillStyle = 'rgba(150,163,180,.55)'; ctx.fill();
+      C.line(ctx, cx - 17, 232, cx + 145, 232, 'rgba(55,66,82,.8)', 3);
+      C.line(ctx, cx - 17, 249, cx + 145, 249, 'rgba(55,66,82,.8)', 3);
+      C.label(ctx, '塔轮', cx + 62, 216, { size: 7.5, color: 'rgba(225,236,250,.42)' });
+      // hand crank
+      C.line(ctx, cx + 168, 232, cx + 168, 290, 'rgba(190,200,215,.55)', 3);
+      C.line(ctx, cx + 168, 290, cx + 202, 290, 'rgba(190,200,215,.55)', 4);
+      C.dot(ctx, cx + 202, 290, 7, '#b8c4d4', 6);
+      C.label(ctx, '转动手柄', cx + 198, 312, { size: 7.5, align: 'center', color: 'rgba(225,236,250,.42)' });
+      // spring sleeve and red/white scale
+      K.panel(ctx, cx - 27, cy - 19, 54, 38, { r: 7, fill: 'rgba(211,222,235,.9)', stroke: 'rgba(80,95,112,.45)' });
+      for (let i = 0; i < 5; i++) C.fillRound(ctx, cx - 19 + i * 7, cy - 7, 5, 18, 1, i % 2 ? '#c94b45' : '#eee7da');
+      C.label(ctx, '测力套筒', cx, cy - 25, { size: 7, align: 'center', color: 'rgba(225,236,250,.48)' });
+      // second ball on short arm (counterweight)
+      C.ball(ctx, cx - 55, cy, 8, ['#f3f5f8', '#bfc8d5', '#6f7c8f']);
       // orbit
       ctx.save();
       ctx.setLineDash([5, 6]);
@@ -48,10 +70,7 @@
       C.line(ctx, cx, cy, bx, by, 'rgba(225,238,255,.52)', 1.4);
       C.line(ctx, cx, cy, bx, by, 'rgba(100,210,255,.2)', 1, [4, 4]);
       C.label(ctx, 'r = ' + U.fmt(state.r, 2) + ' m', (cx + bx) / 2 + 12, (cy + by) / 2 + 4, { size: 8.5, color: 'rgba(100,210,255,.6)', mono: true });
-      // sensor at center
-      K.panel(ctx, cx - 33, cy - 24, 66, 48, { r: 9, fill: 'rgba(17,26,44,.9)', stroke: 'rgba(150,190,255,.25)' });
-      C.label(ctx, '力传感器', cx, cy - 8, { size: 7, align: 'center', color: 'rgba(200,220,255,.44)' });
-      C.label(ctx, U.fmt(F, 1) + ' N', cx, cy + 9, { size: 11, align: 'center', color: '#64d2ff', mono: true });
+      C.label(ctx, 'F向 = ' + U.fmt(F, 1) + ' N', cx, cy + 54, { size: 9, align: 'center', color: '#64d2ff', mono: true });
       // ball
       C.glowCircle(ctx, bx, by, 40, '#5ca8ff', 0.32);
       C.ball(ctx, bx, by, 10, ['#ffffff', '#a3d1ff', '#2b6fd3']);
@@ -155,8 +174,8 @@
       const xm = 0.5 * a * t * t;
       const v = a * t;
       const W = net * state.s;
-      const scale = Math.min(190, 610 / Math.max(state.s, 0.4));
-      const x0 = 110, trackY = 320;
+      const scale = Math.min(140, 570 / Math.max(state.s, 1));
+      const x0 = 250, trackY = 320;
       const blockX = x0 + Math.min(xm, state.s) * scale;
 
       K.panel(ctx, 40, 44, 826, 160, { fill: 'rgba(9,15,26,.46)' });
@@ -173,8 +192,14 @@
       ]);
 
       // track
-      C.floorLine(ctx, 58, 852, trackY, 'rgba(160,190,240,.3)');
-      C.line(ctx, 70, trackY, 830, trackY, 'rgba(160,190,240,.24)', 5);
+      C.floorLine(ctx, 48, 870, trackY, 'rgba(160,190,240,.3)');
+      C.line(ctx, 58, trackY, 844, trackY, 'rgba(160,190,240,.24)', 5);
+      C.line(ctx, 58, trackY - 2, 844, trackY - 2, 'rgba(255,255,255,.12)', 1);
+      // rubber band stretching from fixed hook to the cart
+      C.line(ctx, 70, trackY - 25, blockX - 24, trackY - 25, 'rgba(194,126,54,.85)', 5);
+      C.line(ctx, 70, trackY - 20, blockX - 24, trackY - 20, 'rgba(255,190,105,.3)', 1);
+      C.dot(ctx, 68, trackY - 25, 5, '#7d5129', 4);
+      C.label(ctx, '橡皮筋', 78, trackY - 40, { size: 7.5, color: 'rgba(240,180,100,.7)' });
       // start & end marks
       C.line(ctx, x0, trackY - 4, x0, trackY + 8, 'rgba(255,255,255,.3)', 1);
       const endX = x0 + state.s * scale;

@@ -13,6 +13,8 @@ using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Win32;
 
 namespace PrismLab
@@ -25,6 +27,8 @@ namespace PrismLab
         private static AssetServer server;
         private static string dataDir;
         private static string portFile;
+        private static Form shell;
+        private static bool exiting;
 
         [STAThread]
         private static void Main(string[] args)
@@ -35,21 +39,20 @@ namespace PrismLab
             dataDir = ResolveDataDir();
             portFile = Path.Combine(dataDir, "port-v3.txt");
             Log("Starting Prism portable");
+            BootstrapWebView2();
 
             bool createdNew;
             appMutex = new Mutex(true, AppMutexName, out createdNew);
             if (!createdNew)
             {
-                int existingPort = ReadPort();
-                if (existingPort > 0 && !noBrowser)
-                {
-                    OpenBrowser("http://127.0.0.1:" + existingPort + "/");
-                }
+                ActivateExistingWindow();
                 return;
             }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            Application.ThreadException += delegate(object sender, ThreadExceptionEventArgs e) { Log("ThreadException: " + e.Exception); };
+            AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs e) { Log("Unhandled: " + e.ExceptionObject); };
 
             try
             {
@@ -58,13 +61,16 @@ namespace PrismLab
                 File.WriteAllText(portFile, server.Port.ToString(), Encoding.ASCII);
                 Log("Server started at " + server.Url);
 
-                if (!noBrowser)
-                {
-                    OpenBrowser(server.Url);
-                }
-
                 BuildTray();
-                Application.Run(new ApplicationContext());
+                if (noBrowser)
+                {
+                    Application.Run(new ApplicationContext());
+                }
+                else
+                {
+                    shell = CreateShell();
+                    Application.Run(shell);
+                }
             }
             catch (Exception ex)
             {
@@ -77,6 +83,7 @@ namespace PrismLab
             }
             finally
             {
+                Log("Main exiting");
                 Cleanup();
             }
         }
@@ -90,6 +97,139 @@ namespace PrismLab
             }
             return false;
         }
+
+        private static void BootstrapWebView2()
+        {
+            string dir = Path.Combine(dataDir, "webview2-runtime");
+            Directory.CreateDirectory(dir);
+            string[] resources = new string[] {
+                "PrismLab.WebView2.Core.dll",
+                "PrismLab.WebView2.WinForms.dll",
+                "PrismLab.WebView2Loader.dll"
+            };
+            foreach (string name in resources)
+            {
+                string target = Path.Combine(dir, name.Replace("PrismLab.WebView2Loader.dll", "WebView2Loader.dll").Replace("PrismLab.WebView2.", "Microsoft.Web.WebView2."));
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+                {
+                    if (stream == null) throw new InvalidOperationException("Missing embedded WebView2 resource: " + name);
+                    using (FileStream output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    {
+                        stream.CopyTo(output);
+                    }
+                }
+            }
+            SetDllDirectory(dir);
+            AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs args)
+            {
+                string simple = new AssemblyName(args.Name).Name;
+                string candidate = Path.Combine(dir, simple + ".dll");
+                return File.Exists(candidate) ? Assembly.Load(File.ReadAllBytes(candidate)) : null;
+            };
+        }
+
+        private static Form CreateShell()
+        {
+            Form form = new Form();
+            form.Text = "中山市中山纪念中学物理实验室";
+            form.StartPosition = FormStartPosition.CenterScreen;
+            form.MinimumSize = new Size(1120, 720);
+            form.ClientSize = new Size(1500, 940);
+            form.BackColor = Color.FromArgb(10, 15, 24);
+            try { form.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+            catch { }
+
+            WebView2 view = new WebView2();
+            view.Dock = DockStyle.Fill;
+            view.DefaultBackgroundColor = Color.FromArgb(10, 15, 24);
+            form.Controls.Add(view);
+
+            form.Shown += async delegate
+            {
+                Log("Form shown");
+                try
+                {
+                    string webData = Path.Combine(dataDir, "webview2");
+                    Directory.CreateDirectory(webData);
+                    CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, webData, null);
+                    await view.EnsureCoreWebView2Async(environment);
+                    view.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                    view.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                    view.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                    view.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                    view.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = true;
+                    view.CoreWebView2.NewWindowRequested += delegate(object sender, CoreWebView2NewWindowRequestedEventArgs e)
+                    {
+                        e.Handled = true;
+                        try { Process.Start(new ProcessStartInfo(e.Uri) { UseShellExecute = true }); }
+                        catch { }
+                    };
+                    view.CoreWebView2.Navigate(server.Url);
+                    form.Show();
+                    form.Activate();
+                }
+                catch (Exception ex)
+                {
+                    Log("WebView2 failed: " + ex);
+                    MessageBox.Show(
+                        "内置桌面引擎启动失败。\r\n\r\n请确认系统已安装 Microsoft Edge WebView2 Runtime。\r\n\r\n" + ex.Message,
+                        "中山市中山纪念中学物理实验室",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    exiting = true;
+                    form.Close();
+                }
+            };
+            form.FormClosing += delegate(object sender, FormClosingEventArgs e)
+            {
+                exiting = true;
+                Log("FormClosing: " + e.CloseReason);
+            };
+            System.Windows.Forms.Timer activateTimer = new System.Windows.Forms.Timer();
+            activateTimer.Interval = 900;
+            activateTimer.Tick += delegate
+            {
+                activateTimer.Stop();
+                if (form.IsDisposed) return;
+                if (!form.Visible) form.Show();
+                if (form.WindowState == FormWindowState.Minimized) form.WindowState = FormWindowState.Normal;
+                form.Activate();
+                form.BringToFront();
+            };
+            activateTimer.Start();
+            return form;
+        }
+
+        private static void ShowShell()
+        {
+            if (shell == null || shell.IsDisposed) return;
+            if (!shell.Visible) shell.Show();
+            if (shell.WindowState == FormWindowState.Minimized) shell.WindowState = FormWindowState.Normal;
+            shell.Activate();
+            shell.BringToFront();
+        }
+
+        private static void ActivateExistingWindow()
+        {
+            IntPtr hwnd = FindWindow(null, "中山市中山纪念中学物理实验室");
+            if (hwnd != IntPtr.Zero)
+            {
+                ShowWindowAsync(hwnd, 9);
+                SetForegroundWindow(hwnd);
+            }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetDllDirectory(string lpPathName);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         private static string ResolveDataDir()
         {
@@ -167,7 +307,7 @@ namespace PrismLab
 
             ContextMenuStrip menu = new ContextMenuStrip();
             ToolStripMenuItem open = new ToolStripMenuItem("打开实验室");
-            open.Click += delegate { OpenBrowser(server.Url); };
+            open.Click += delegate { ShowShell(); };
             ToolStripMenuItem copy = new ToolStripMenuItem("复制访问地址");
             copy.Click += delegate
             {
@@ -175,13 +315,13 @@ namespace PrismLab
                 catch { }
             };
             ToolStripMenuItem exit = new ToolStripMenuItem("退出");
-            exit.Click += delegate { Application.Exit(); };
+            exit.Click += delegate { exiting = true; if (shell != null && !shell.IsDisposed) shell.Close(); Application.Exit(); };
             menu.Items.Add(open);
             menu.Items.Add(copy);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(exit);
             tray.ContextMenuStrip = menu;
-            tray.DoubleClick += delegate { OpenBrowser(server.Url); };
+            tray.DoubleClick += delegate { ShowShell(); };
             try
             {
                 tray.ShowBalloonTip(3500, "中山市中山纪念中学物理实验室已启动",

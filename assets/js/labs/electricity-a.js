@@ -59,13 +59,47 @@
   }
 
   function meter(ctx, x, y, r, letter, value, color) {
+    const W = r * 3.8, H = r * 2.9;
+    const left = x - W / 2, top = y - H / 2;
+    const numeric = parseFloat(String(value == null ? '' : value).replace(/[^0-9.+-]/g, ''));
+    const max = letter === 'A' ? 0.6 : 3;
+    const frac = Number.isFinite(numeric) ? Math.max(0, Math.min(1, Math.abs(numeric) / max)) : 0;
     ctx.save();
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(14,22,38,.9)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(160,195,245,.45)'; ctx.lineWidth = 1.3; ctx.stroke();
+    ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+    C.fillRound(ctx, left, top, W, H, r * .32, '#e7ebf0');
+    ctx.shadowColor = 'transparent';
+    C.fillRound(ctx, left + 2, top + 2, W - 4, H - 4, r * .28, '#f7f5ed');
+    ctx.strokeStyle = 'rgba(90,105,125,.55)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y - r * .06, r * 1.12, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,.72)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(80,95,115,.35)'; ctx.lineWidth = .8; ctx.stroke();
+    const fy = -r * .06, fr = r * 1.12;
+    ctx.strokeStyle = 'rgba(42,54,68,.75)'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(x, y + fy, fr * .78, Math.PI * 1.04, Math.PI * 1.96); ctx.stroke();
+    for (let i = 0; i <= 10; i++) {
+      const a = Math.PI * 1.04 + Math.PI * .92 * i / 10;
+      const inner = fr * (i % 5 === 0 ? .62 : .69), outer = fr * .78;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * inner, y + fy + Math.sin(a) * inner);
+      ctx.lineTo(x + Math.cos(a) * outer, y + fy + Math.sin(a) * outer);
+      ctx.strokeStyle = i % 5 === 0 ? 'rgba(35,45,58,.9)' : 'rgba(75,88,105,.58)';
+      ctx.lineWidth = i % 5 === 0 ? 1.2 : .7; ctx.stroke();
+    }
+    C.label(ctx, '0', x - fr * .62, y + fy + fr * .48, { size: r * .3, align: 'center', color: 'rgba(45,55,68,.75)', mono: true });
+    C.label(ctx, String(max), x + fr * .58, y + fy + fr * .48, { size: r * .3, align: 'center', color: 'rgba(45,55,68,.75)', mono: true });
+    const a = Math.PI * 1.04 + Math.PI * .92 * frac;
+    ctx.beginPath(); ctx.moveTo(x, y + fy + fr * .03);
+    ctx.lineTo(x + Math.cos(a) * fr * .68, y + fy + Math.sin(a) * fr * .68);
+    ctx.strokeStyle = color || '#e04b3f'; ctx.lineWidth = Math.max(1.2, r * .055); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y + fy + fr * .03, r * .09, 0, Math.PI * 2); ctx.fillStyle = '#26313e'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x - W * .24, y + H * .42, r * .12, 0, Math.PI * 2); ctx.fillStyle = '#c94135'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x + W * .24, y + H * .42, r * .12, 0, Math.PI * 2); ctx.fillStyle = '#20242b'; ctx.fill();
+    C.label(ctx, letter, x, top + r * .33, { size: r * .34, align: 'center', color: 'rgba(50,60,74,.86)', weight: 700 });
+    C.label(ctx, 'COM', x + W * .24, y + H * .42, { size: r * .18, align: 'center', color: 'rgba(255,255,255,.35)', mono: true });
+    ctx.beginPath(); ctx.arc(x - r * .28, y + fy - r * .35, fr * .55, Math.PI * 1.05, Math.PI * 1.55);
+    ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = r * .1; ctx.stroke();
     ctx.restore();
-    C.label(ctx, letter, x, y + 1, { size: r * 0.72, align: 'center', color: color || 'rgba(200,220,255,.8)' });
-    if (value != null) C.label(ctx, value, x, y + r + 16, { size: 8.5, align: 'center', color: color || '#64d2ff', mono: true });
+    if (value != null) C.label(ctx, value, x, top + H + 12, { size: 8.5, align: 'center', color: color || '#64d2ff', mono: true });
   }
 
   function zigzag(ctx, x1, y, x2, color) {
@@ -119,7 +153,7 @@
       batterySymbol(ctx, 96, 240, false, 1.1);
       C.label(ctx, U.fmt(state.U, 1) + ' V', 76, 210, { size: 8, color: 'rgba(230,240,255,.35)', mono: true });
       // ammeter
-      meter(ctx, 282, 150, 17, 'A', U.fmt(q.I, 2) + ' A', '#64d2ff');
+      meter(ctx, 282, 150, 22, 'A', U.fmt(q.I, 2) + ' A', '#64d2ff');
       // sample wire
       C.line(ctx, 354, 150, 468, 150, q.mat.color, 4);
       C.line(ctx, 354, 150, 468, 150, 'rgba(255,255,255,.35)', 1);
@@ -131,7 +165,7 @@
       C.line(ctx, 354, 150, 354, 78, 'rgba(210,228,250,.38)', 1.1);
       C.line(ctx, 354, 78, 468, 78, 'rgba(210,228,250,.38)', 1.1);
       C.line(ctx, 468, 78, 468, 150, 'rgba(210,228,250,.38)', 1.1);
-      meter(ctx, 411, 78, 17, 'V', U.fmt(q.Uw, 3) + ' V', '#ffb340');
+      meter(ctx, 411, 78, 22, 'V', U.fmt(q.Uw, 3) + ' V', '#ffb340');
 
       // wire zoom
       K.panel(ctx, 560, 54, 292, 130, { fill: 'rgba(9,15,26,.58)' });
@@ -221,7 +255,7 @@
 
       batterySymbol(ctx, 98, 240, false, 1.1);
       C.label(ctx, U.fmt(state.U, 1) + ' V', 74, 210, { size: 8, color: 'rgba(230,240,255,.35)', mono: true });
-      meter(ctx, 270, 150, 17, 'A', U.fmt(q.I, 2) + ' A', '#64d2ff');
+      meter(ctx, 270, 150, 21, 'A', U.fmt(q.I, 2) + ' A', '#64d2ff');
       // lamp
       const lx = 414, ly = 150;
       if (q.bright > 0.01) C.glowCircle(ctx, lx, ly, 92, '#ffcf70', 0.42 * q.bright);
@@ -243,7 +277,7 @@
       C.line(ctx, 378, 150, 378, 78, 'rgba(210,228,250,.35)', 1.1);
       C.line(ctx, 378, 78, 450, 78, 'rgba(210,228,250,.35)', 1.1);
       C.line(ctx, 450, 78, 450, 150, 'rgba(210,228,250,.35)', 1.1);
-      meter(ctx, 414, 78, 17, 'V', U.fmt(state.U, 2) + ' V', '#ffb340');
+      meter(ctx, 414, 78, 21, 'V', U.fmt(state.U, 2) + ' V', '#ffb340');
 
       // result panel
       K.panel(ctx, 560, 54, 292, 202, { fill: 'rgba(9,15,26,.62)' });
@@ -331,7 +365,7 @@
       C.label(ctx, 'r', 136, 274, { size: 8, color: '#ffb340', mono: true });
       C.label(ctx, 'E = ' + U.fmt(state.E, 1) + ' V', 74, 208, { size: 8, color: 'rgba(230,240,255,.38)', mono: true });
 
-      meter(ctx, 272, 150, 17, 'A', U.fmt(q.I, 3) + ' A', '#64d2ff');
+      meter(ctx, 272, 150, 21, 'A', U.fmt(q.I, 3) + ' A', '#64d2ff');
       // rheostat
       zigzag(ctx, 300, 330, 400, 'rgba(220,235,255,.55)');
       C.line(ctx, 400, 330, 400, 298, 'rgba(220,235,255,.35)', 1);
@@ -342,7 +376,7 @@
       C.line(ctx, 76, 150, 76, 68, 'rgba(210,228,250,.35)', 1);
       C.line(ctx, 76, 68, 158, 68, 'rgba(210,228,250,.35)', 1);
       C.line(ctx, 158, 68, 158, 150, 'rgba(210,228,250,.35)', 1);
-      meter(ctx, 117, 68, 16, 'V', U.fmt(q.U, 2) + ' V', '#ffb340');
+      meter(ctx, 117, 68, 20, 'V', U.fmt(q.U, 2) + ' V', '#ffb340');
 
       // result panel
       K.panel(ctx, 560, 54, 292, 204, { fill: 'rgba(9,15,26,.62)' });

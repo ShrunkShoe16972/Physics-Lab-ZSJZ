@@ -2,11 +2,11 @@
 
 [中文](#zh) · [English](#en)
 
-> **v0.6.3** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
+> **v0.7.0** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
 >
 > 22 high-school physics experiments · rAF scroll sync · Wallpaper Engine live background · faster startup
 
-[![Version](https://img.shields.io/badge/version-0.6.3-0a84ff)](#)
+[![Version](https://img.shields.io/badge/version-0.7.0-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
@@ -27,6 +27,7 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 项目完全由 **HTML + CSS + JavaScript** 编写，不依赖后端、不需要安装 Node.js 或编译工具，双击即可运行。无需动态链接库，也不依赖外部 CDN。
 
 - 产品需求文档：[PRD.md](PRD.md)
+- 0.7.0 新增：独立 WebView2 桌面窗口（不再调用 Chrome）、实验参数移入实验窗口、实验向导置顶、易错点按钮、纪中牌坊默认壁纸、居中搜索下拉、电表重绘、三个教材实验修正
 - 0.6.3 新增：Wallpaper Engine 窗口移出桌面并隐藏任务栏图标、动态壁纸帧率与 JPEG 清晰度提升、填充/适应/拉伸/平铺/原尺寸背景模式
 - 0.6.2 新增：滚动与背景同步到 rAF、启动资源按需加载、Wallpaper Engine 实时动态背景、按钮与控件质感优化
 - 0.6.1 新增：统一字体层级、无文字大缩略图、细腻滚动条、渲染性能优化、Bing 每日壁纸与系统壁纸 API 自动查找
@@ -34,36 +35,34 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 ## 快速启动
 
-### 方式一：双击启动（推荐）
+### 方式一：独立桌面程序（推荐）
 
-双击项目根目录的 **`start.bat`**。它会：
+双击 **`dist/PrismLab-0.7.0.exe`**：
 
-1. 在 `127.0.0.1:4178` 启动一个轻量本地静态服务器；
-2. 用 Chrome / Edge 的 **应用窗口模式** 打开实验室；
-3. 关闭命令行窗口或按 `Ctrl + C` 停止服务。
+1. 启动独立 WinForms 窗口，内部使用 WebView2 渲染，不打开 Chrome / Edge 地址栏；
+2. 程序内置全部 HTML / CSS / JavaScript / 字体 / 图片 / PPT 资源，不需要联网安装；
+3. 关闭窗口即退出程序；系统托盘仍提供“打开实验室 / 复制访问地址 / 退出”；
+4. 本机需要 Microsoft Edge WebView2 Runtime（Windows 11 通常已自带）。
 
-> 如果 Chrome / Edge 不在默认路径，脚本会自动尝试系统默认浏览器。
+> 0.7.0 的 EXE 使用自签名代码签名证书。首次运行可在
+> `packaging/certs/PrismLab-CodeSigning.cer` 查看并安装公钥证书到“受信任的发布者”，
+> 以消除“未知发布者”提示。它不是公共 CA 证书，其他电脑仍需手动信任。
 
-### 方式二：在 VS Code 中启动
+### 方式二：开发模式（浏览器）
 
-1. 用 VS Code 打开本文件夹（或双击 `prism-physics-lab.code-workspace`）；
-2. 按 `Ctrl + Shift + B`，或运行任务 **“Prism: 启动实验室”**；
-3. 浏览器会自动打开 `http://127.0.0.1:4178/`。
+开发时仍可使用 **`start.bat`**：
 
-### 方式三：直接打开
+1. 在 `127.0.0.1:4178` 启动轻量静态服务器；
+2. 用 Chrome / Edge 的 **应用窗口模式** 打开页面，便于热更新调试；
+3. 这是开发入口，不是最终桌面程序；正式分发请使用 `dist/PrismLab-0.7.0.exe`。
 
-直接双击 `index.html` 也能运行。由于浏览器对本地文件的存储策略不同，建议使用前两种方式以获得更稳定的学习进度记录。
+### 方式三：VS Code
 
-### 方式四：便携 EXE（分享给其他人）
+用 VS Code 打开本文件夹，按 `Ctrl + Shift + B` 运行 **“Prism: 启动实验室”**（开发模式）。
 
-**`dist/PrismLab-0.6.3.exe`** 是单文件便携版，适用于 Windows 10 / 11：
+### 方式四：直接打开
 
-1. 把 exe 复制到任意目录，双击运行；
-2. 程序内置全部 HTML / CSS / JavaScript，不需要联网、不需要安装；
-3. 自动尝试用 Chrome / Edge 的应用窗口打开，若未安装则交给默认浏览器；
-4. 关闭浏览器后服务仍在系统托盘，右键 Prism 图标可重新打开或退出。
-
-由于是未签名程序，Windows SmartScreen 可能提示“未知发布者”，选择“更多信息 → 仍要运行”即可。
+直接双击 `index.html` 也能运行，但本地存储策略不同，建议使用 EXE 或开发服务器。
 
 重新构建便携版：
 
@@ -355,11 +354,10 @@ prism-physics-lab/
 
 ## 浏览器支持
 
-- Chrome / Edge 96+
-- Safari 16+
-- Firefox 110+
+- Windows 10 / 11 x64 + Microsoft Edge WebView2 Runtime
+- 开发模式浏览器：Chrome / Edge 96+、Safari 16+、Firefox 110+
 
-使用了 `Canvas 2D`、`ResizeObserver`、`backdrop-filter` 与 `localStorage`。不支持 `backdrop-filter` 的浏览器会自动退化为普通半透明面板。
+桌面程序使用 `WebView2`、`Canvas 2D`、`ResizeObserver`、`backdrop-filter` 与 `localStorage`。不支持 `backdrop-filter` 的浏览器会自动退化为普通半透明面板。
 
 ## License
 
@@ -376,9 +374,10 @@ prism-physics-lab/
 
 The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive physics lab for high-school students. It turns **22 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
 
-The project is written entirely in **HTML + CSS + JavaScript**. It has no backend, no build step, and no runtime CDN dependency. Open it directly or run the bundled local server.
+The experiment engine is **HTML + CSS + JavaScript** running inside an embedded WebView2 desktop shell. The 0.7.0 EXE is a single WinForms application and does not launch Chrome or Edge externally. It has no backend and no runtime CDN dependency.
 
 - Product requirements: [PRD.md](PRD.md) (Chinese)
+- New in 0.7.0: independent WebView2 desktop window (no external Chrome), inline experiment parameters, top experiment wizard, mistake-point button, school-gate default wallpaper, centered search dropdown, realistic meters, and three textbook-lab corrections.
 - New in 0.6.3: Wallpaper Engine pop-out is moved off-desktop and hidden from the taskbar; live capture runs at ~25fps at 1280×720 JPEG 82; five background fit modes (cover, contain, stretch, tile, original).
 - New in 0.6.2: rAF-synchronized scrolling with subtle background parallax, on-demand startup assets, live Wallpaper Engine backgrounds, and polished buttons.
 - New in 0.6.1: unified typography, larger text-free thumbnails, subtle scrollbars, render-performance tuning, Bing daily wallpapers and automatic system wallpaper API discovery.
@@ -386,38 +385,36 @@ The project is written entirely in **HTML + CSS + JavaScript**. It has no backen
 
 ## Quick start
 
-### 1. Double-click `start.bat` (recommended)
+### 1. Standalone desktop app (recommended)
 
-The script:
+Double-click **`dist/PrismLab-0.7.0.exe`**:
 
-1. starts a lightweight static server at `127.0.0.1:4178`;
-2. opens the lab in a Chrome / Edge app window;
-3. stops when you close the terminal or press `Ctrl + C`.
+1. it opens a native WinForms window with WebView2 inside, with no Chrome / Edge address bar;
+2. all HTML / CSS / JavaScript / fonts / images / PPT resources are embedded;
+3. closing the window exits the app; the tray menu can reopen it;
+4. Microsoft Edge WebView2 Runtime is required (normally preinstalled on Windows 11).
 
-If Chrome / Edge is not found, the script falls back to the system default browser.
+The 0.7.0 EXE is signed with a self-signed school certificate. The public certificate is at
+`packaging/certs/PrismLab-CodeSigning.cer`; install it under “Trusted Publishers” to suppress
+the unknown-publisher prompt. It is not a public CA certificate.
 
-### 2. VS Code
+### 2. Development mode (browser)
 
-1. Open this folder (or `prism-physics-lab.code-workspace`) in VS Code;
-2. press `Ctrl + Shift + B`, or run **“Prism: 启动实验室”**;
-3. the browser opens `http://127.0.0.1:4178/`.
+`start.bat` still starts a browser-based development server at `127.0.0.1:4178` for fast
+hot-reload iteration. It is not the distributed desktop app.
 
-### 3. Open `index.html`
+### 3. VS Code
 
-You can double-click `index.html` directly. For stable local progress storage, prefer the local server methods above.
+Press `Ctrl + Shift + B` and run **“Prism: 启动实验室”** (development mode).
 
-### 4. Portable EXE (Windows 10/11)
+### 4. Open `index.html`
 
-**`dist/PrismLab-0.6.3.exe`** is a single-file portable build:
+You can open `index.html` directly; local progress storage is more stable through the EXE or
+development server.
 
-1. copy it anywhere and double-click;
-2. all HTML / CSS / JavaScript is embedded; no network or installer required;
-3. it tries Chrome / Edge app mode, then falls back to the default browser;
-4. after closing the browser, the server stays in the system tray; right-click the Prism icon to reopen or exit.
+### Portable EXE build
 
-The executable is unsigned, so Windows SmartScreen may warn about an unknown publisher. Choose **More info → Run anyway**.
-
-Rebuild the portable EXE:
+Rebuild the standalone EXE:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
@@ -687,11 +684,10 @@ These approximations preserve the core physics and visual trends, but are not in
 
 ## Browser support
 
-- Chrome / Edge 96+
-- Safari 16+
-- Firefox 110+
+- Windows 10 / 11 x64 + Microsoft Edge WebView2 Runtime
+- Development-mode browsers: Chrome / Edge 96+, Safari 16+, Firefox 110+
 
-Uses `Canvas 2D`, `ResizeObserver`, `backdrop-filter` and `localStorage`. Browsers without `backdrop-filter` fall back to plain translucent panels.
+The desktop app uses `WebView2`, `Canvas 2D`, `ResizeObserver`, `backdrop-filter` and `localStorage`. Browsers without `backdrop-filter` fall back to plain translucent panels.
 
 ## License
 
