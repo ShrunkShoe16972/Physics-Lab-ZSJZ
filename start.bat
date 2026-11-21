@@ -1,8 +1,8 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if exist "dist\PrismLab-0.7.1.exe" (
-  start "" "dist\PrismLab-0.7.1.exe"
+if exist "dist\PrismLab-0.7.2.exe" (
+  start "" "dist\PrismLab-0.7.2.exe"
   exit /b 0
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0run.ps1"

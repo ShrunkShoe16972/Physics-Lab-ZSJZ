@@ -29,6 +29,10 @@ namespace PrismLab
         private static string portFile;
         private static Form shell;
         private static bool exiting;
+        private static bool fullscreen;
+        private static FormWindowState previousWindowState;
+        private static FormBorderStyle previousBorderStyle;
+        private static Rectangle previousBounds;
 
         [STAThread]
         private static void Main(string[] args)
@@ -158,6 +162,16 @@ namespace PrismLab
                     view.CoreWebView2.Settings.IsStatusBarEnabled = false;
                     view.CoreWebView2.Settings.IsZoomControlEnabled = false;
                     view.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = true;
+                    view.CoreWebView2.WebMessageReceived += delegate(object sender, CoreWebView2WebMessageReceivedEventArgs e)
+                    {
+                        try
+                        {
+                            string message = e.TryGetWebMessageAsString();
+                            if (message == "fullscreen:on") SetFullscreen(true);
+                            else if (message == "fullscreen:off") SetFullscreen(false);
+                        }
+                        catch { }
+                    };
                     view.CoreWebView2.NewWindowRequested += delegate(object sender, CoreWebView2NewWindowRequestedEventArgs e)
                     {
                         e.Handled = true;
@@ -183,6 +197,7 @@ namespace PrismLab
             form.FormClosing += delegate(object sender, FormClosingEventArgs e)
             {
                 exiting = true;
+                if (fullscreen) SetFullscreen(false);
                 Log("FormClosing: " + e.CloseReason);
             };
             System.Windows.Forms.Timer activateTimer = new System.Windows.Forms.Timer();
@@ -198,6 +213,35 @@ namespace PrismLab
             };
             activateTimer.Start();
             return form;
+        }
+
+        private static void SetFullscreen(bool enabled)
+        {
+            if (shell == null || shell.IsDisposed) return;
+            if (enabled == fullscreen) return;
+
+            if (enabled)
+            {
+                previousWindowState = shell.WindowState;
+                previousBorderStyle = shell.FormBorderStyle;
+                previousBounds = shell.Bounds;
+                shell.TopMost = true;
+                shell.FormBorderStyle = FormBorderStyle.None;
+                shell.WindowState = FormWindowState.Normal;
+                shell.Bounds = Screen.FromControl(shell).Bounds;
+                shell.Activate();
+                fullscreen = true;
+            }
+            else
+            {
+                shell.TopMost = false;
+                shell.FormBorderStyle = previousBorderStyle;
+                shell.WindowState = FormWindowState.Normal;
+                shell.Bounds = previousBounds;
+                shell.WindowState = previousWindowState;
+                shell.Activate();
+                fullscreen = false;
+            }
         }
 
         private static void ShowShell()

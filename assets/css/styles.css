@@ -864,6 +864,12 @@ body.stage-theater .sidebar-toggle { display: none; }
 #labCanvas.is-dragging { cursor: grabbing; }
 
 .side-stack { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
+.side-stack .viz-card { width: 100%; min-width: 0; }
+.side-stack .viz-head { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 14px 0; }
+.side-stack .viz-tabs { width: 100%; }
+.side-stack .viz-tabs button { flex: 1; justify-content: center; }
+.side-stack .chart-wrap { height: 300px; margin: 10px 8px 6px; }
+.side-stack .chart-foot { padding: 0 12px 12px; }
 .control-card { padding: 0; overflow: hidden; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 16px 0; }
 .card-head h3 { margin: 0; font-size: 12.5px; font-weight: 650; letter-spacing: -0.01em; }
@@ -1391,6 +1397,7 @@ body.we-video-bg .app-background { opacity: 0; }
 .stage-controls-head b { font-size: 11px; color: rgba(238,244,255,.9); }
 .stage-controls-head span { font-size: 8px; color: rgba(238,244,255,.36); }
 .stage-controls .controls { padding: 7px 0 3px; }
+.stage-controls .mm-short-btn { width: 100%; margin-top: 4px; font-size: 10px; }
 .stage-controls .control-row { padding: 7px 1px; }
 .stage-controls .control-top label { color: rgba(238,244,255,.68); }
 .stage-controls .control-value { color: #9ec1ff; }

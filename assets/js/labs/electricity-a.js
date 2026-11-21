@@ -480,7 +480,7 @@
     state._connected = false;
     state._short = false;
     state._drag = null;
-    if (state.ohmZero == null) state.ohmZero = 0.5;
+    if (state.ohmZero == null) state.ohmZero = 0.15;
   }
 
   function stagePoint(view, p) {
@@ -515,14 +515,27 @@
     playable: false,
     pointer: true,
     hint: '拖动红黑表笔，分别接触待测元件两端 · 红表笔接“+”，黑表笔接“COM”',
+    extraControls: '<button class="btn ghost small mm-short-btn" data-action="multimeter-short" title="把红黑表笔短接在同一接线柱，便于欧姆调零">短接表笔（欧姆调零）</button>',
     init(state, view) {
-      state.ohmZero = 0.5;
+      state.ohmZero = 0.15;
       state.zeroDirty = false;
       resetProbes(state);
       view._frame = null;
     },
     onControl(key, state) {
       if (key === 'component') resetProbes(state);
+    },
+    shortProbes(state) {
+      if (!state._probe) resetProbes(state);
+      ['red', 'black'].forEach((key) => {
+        state._probe[key].x = PROBE_TERMINALS[0].x;
+        state._probe[key].y = PROBE_TERMINALS[0].y;
+        state._probe[key].attached = 0;
+      });
+      state.mode = 'resistance';
+      const sel = document.querySelector('select[data-control-select="mode"]');
+      if (sel) sel.value = 'resistance';
+      refreshConnection(state);
     },
     _measure(state) {
       const comp = COMPONENTS[state.component] || COMPONENTS.resistor;
@@ -571,7 +584,7 @@
         this._turnDial(q, state);
         return true;
       }
-      if (Math.hypot(q.x - MM.zero.x, q.y - MM.zero.y) <= MM.zero.r + 10) {
+      if (Math.hypot(q.x - MM.zero.x, q.y - MM.zero.y) <= MM.zero.r + 14) {
         state._drag = 'zero';
         this._turnZero(q, state);
         return true;
@@ -690,7 +703,7 @@
         const a = i / 8 * Math.PI * 2;
         C.line(ctx, zx + Math.cos(a) * (MM.zero.r - 2), zy + Math.sin(a) * (MM.zero.r - 2), zx + Math.cos(a) * (MM.zero.r + 1), zy + Math.sin(a) * (MM.zero.r + 1), 'rgba(30,35,44,.6)', .8);
       }
-      C.label(ctx, 'Ω 调零', zx, zy + MM.zero.r + 12, { size: 7, align: 'center', color: 'rgba(230,240,255,.62)' });
+      C.label(ctx, 'Ω 调零 · 拖动', zx, zy + MM.zero.r + 12, { size: 7, align: 'center', color: 'rgba(230,240,255,.62)' });
       // input jacks
       MM.jacks.forEach((jack, i) => {
         C.dot(ctx, jack.x, jack.y, 11, '#1a202a');

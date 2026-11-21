@@ -790,6 +790,23 @@
     root.setAttribute('aria-hidden', 'false');
     const input = $('#globalSearchInput');
     renderPalette(input ? input.value : '');
+    positionPalette();
+    setTimeout(positionPalette, 360);
+  }
+
+  function positionPalette() {
+    const root = $('#paletteRoot');
+    const shell = $('#searchShell');
+    const panel = root && root.querySelector('.palette');
+    if (!panel || !shell) return;
+    const r = shell.getBoundingClientRect();
+    const width = Math.min(480, Math.max(320, window.innerWidth - 24));
+    const left = Math.max(12, Math.min(window.innerWidth - width - 12, r.left + r.width / 2 - width / 2));
+    panel.style.position = 'fixed';
+    panel.style.left = left + 'px';
+    panel.style.top = Math.round(r.bottom + 8) + 'px';
+    panel.style.width = width + 'px';
+    panel.style.maxHeight = Math.max(260, Math.min(510, window.innerHeight - r.bottom - 24)) + 'px';
   }
 
   function renderPalette(q) {
@@ -901,6 +918,7 @@
   }
 
   function renderRoute(fromHash) {
+    if (state.paletteOpen) closePalette();
     const r = parseRoute();
     if (r.name === 'lab') { renderLab(r.id); return; }
     teardownLab();
@@ -1158,6 +1176,14 @@
      Lab runtime
      ------------------------------------------------------------ */
   function teardownLab() {
+    if (document.body.classList.contains('stage-theater')) {
+      document.body.classList.remove('stage-theater');
+      const card = $('#stageCard');
+      if (card) card.classList.remove('theater');
+      try {
+        if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) window.chrome.webview.postMessage('fullscreen:off');
+      } catch (e) { }
+    }
     const cur = state.currentLab;
     if (cur) {
       cur.alive = false;
@@ -1258,18 +1284,19 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.7.1</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.7.2</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.7.1</strong><span>2026-11-21</span></div>' +
-      '<p>修复搜索框重复与侧边栏错位、放大实验向导、移除缩略图、统一舞台按钮、支持全屏交互，并重绘带挡位旋钮与欧姆调零的多用电表。</p>' +
+      '<div class="about-version-row"><strong>0.7.2</strong><span>2026-11-21</span></div>' +
+      '<p>原生全屏覆盖屏幕、欧姆调零快速短接与调零旋钮、搜索弹窗锚定搜索框、数据与图像移至实验右侧。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.7.1</b><span>2026-11-21</span><p>修复搜索框与侧边栏错位、去掉重复搜索框和缩略图；放大实验向导；统一实验舞台按钮；全屏放大后可继续拖动/点击；多用电表增加挡位旋钮、欧姆调零旋钮与表笔互动。</p></div>' +
+      '<div class="about-changelog"><div><b>0.7.2</b><span>2026-11-21</span><p>实验放大改为原生窗口全屏并覆盖整块电脑屏幕；多用电表增加“短接表笔”与可拖动欧姆调零旋钮；搜索下拉固定在搜索框正下方；删除右侧实时读数，数据与图像框移至实验右侧。</p></div>' +
+      '<div><b>0.7.1</b><span>2026-11-21</span><p>修复搜索框与侧边栏错位、去掉重复搜索框和缩略图；放大实验向导；统一实验舞台按钮；全屏放大后可继续拖动/点击；多用电表增加挡位旋钮、欧姆调零旋钮与表笔互动。</p></div>' +
       '<div><b>0.7.0</b><span>2026-11-21</span><p>独立 WebView2 桌面窗口，不再调用 Chrome；实验参数移入实验窗口；实验向导置顶；新增易错点；纪中牌坊默认壁纸；搜索栏居中下拉；电表重绘；修正三个教材实验。</p></div>' +
       '<div><b>0.6.3</b><span>2026-11-15</span><p>Wallpaper Engine 窗口移出桌面并隐藏任务栏图标；提升动态捕获帧率与 JPEG 清晰度；新增填充、适应、拉伸、平铺、原尺寸五种背景显示方式。</p></div>' +
       '<div><b>0.6.2</b><span>2026-11-15</span><p>滚动内容与背景同步到 rAF；启动资源按需加载；Wallpaper Engine 实时动态背景；按钮与控件质感优化。</p></div></div></section>' +
@@ -1277,12 +1304,12 @@
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.7.1-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.7.2-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
       '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
       '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>代码签名证书</h2><span class="pill green">CODE SIGNING</span></div>' +
-      '<p>0.7.1 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
+      '<p>0.7.2 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
       '<p class="about-muted">证书公钥位于 <code>packaging/certs/PrismLab-CodeSigning.cer</code>。它不是公共 CA 证书，Windows 默认仍可能提示“未知发布者”；可将公钥安装到“受信任的发布者”后消除提示。</p></section>' +
       '</div></div>';
   }
@@ -1356,14 +1383,13 @@
       '<div class="stage-top"><div class="stage-label"><span class="live paused" id="liveDot"></span><span id="stageStatus">测量就绪</span>' + (schemeLabel ? '<span class="scheme-stage-badge" id="schemeStageBadge">' + U.esc(schemeLabel) + '</span>' : '') + '</div>' +
       '<div class="stage-tools">' + (canPlay(lab) ? '<button class="stage-play-inline" data-action="toggle-play" id="playBtn" title="播放 / 暂停">' + ui('play') + '</button><button class="stage-tool" data-action="reset" title="重置">' + ui('reset') + '</button>' : '') + '<button class="stage-tool" data-action="toggle-params" id="paramsToggle" title="显示 / 隐藏实验参数" aria-label="显示或隐藏实验参数"><svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button><button class="stage-tool" data-action="screenshot" title="保存图像" aria-label="保存图像"><svg viewBox="0 0 24 24"><path d="M4 8h4l1.5-2h5L16 8h4v11H4V8Z"/><circle cx="12" cy="13.5" r="3.5"/></svg></button><button class="stage-tool stage-expand" data-action="expand" title="放大 / 还原实验舞台" aria-label="放大或还原实验舞台"><svg viewBox="0 0 24 24"><path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4"/></svg></button></div></div>' +
       '<div class="stage-wrap"><canvas id="labCanvas"></canvas>' +
-      '<div class="stage-controls" id="stageControls"><div class="stage-controls-head"><b>实验参数</b><span>实时调节</span></div><div class="controls" id="controls">' + exp.controls.map(controlHTML).join('') + '</div><div class="card-actions"><button class="btn record" data-action="record"><span class="record-dot"></span>采集数据</button><button class="btn ghost small" data-action="reset">' + ui('reset') + '</button></div></div></div>' +
+      '<div class="stage-controls" id="stageControls"><div class="stage-controls-head"><b>实验参数</b><span>实时调节</span></div><div class="controls" id="controls">' + exp.controls.map(controlHTML).join('') + (lab.extraControls || '') + '</div><div class="card-actions"><button class="btn record" data-action="record"><span class="record-dot"></span>采集数据</button><button class="btn ghost small" data-action="reset">' + ui('reset') + '</button></div></div></div>' +
       (canPlay(lab) ? '<div class="stage-tip"><kbd>SPACE</kbd> 播放 / 暂停</div>' : '') +
       '<div class="stage-readouts" id="stageReadouts"></div></section>' +
-      '<aside class="side-stack"><section class="metric-card card"><div class="card-head"><h3>实时读数</h3><span class="sub">LIVE</span></div><div class="metric-grid" id="metricGrid"></div><div class="control-note" style="margin:11px 0 0"><span>' + ui('info') + '</span><span>' + U.esc(lab.hint || '拖动变量，观察图像如何响应。') + '</span></div></section></aside></div>' +
-      '<div class="lab-bottom single"><section class="viz-card card"><div class="viz-head"><div><h3>数据与图像</h3><div class="sub" id="chartSub">实时绘制</div></div><div class="viz-tabs"><button class="active" data-tab="chart">' + ui('chart') + ' 图像</button><button data-tab="table">' + ui('table') + ' 数据表 <span id="recordCount">0</span></button></div></div>' +
+      '<aside class="side-stack"><section class="viz-card card"><div class="viz-head"><div><h3>数据与图像</h3><div class="sub" id="chartSub">实时绘制</div></div><div class="viz-tabs"><button class="active" data-tab="chart">' + ui('chart') + ' 图像</button><button data-tab="table">' + ui('table') + ' 数据表 <span id="recordCount">0</span></button></div></div>' +
       '<div class="chart-wrap" id="chartWrap"><canvas id="labChart"></canvas><div class="chart-tooltip" id="chartTip"></div></div>' +
       '<div class="data-table-wrap" id="dataTableWrap"></div>' +
-      '<div class="chart-foot" id="chartFoot"></div></section></div>' +
+      '<div class="chart-foot" id="chartFoot"></div></section></aside></div>' +
       '</div>';
 
     const current = state.currentLab = {
@@ -1896,6 +1922,16 @@
       }
       else if (action === 'reset' && state.currentLab) resetLab();
       else if (action === 'record' && state.currentLab) appendRecord(false);
+      else if (action === 'multimeter-short' && state.currentLab) {
+        const cur = state.currentLab;
+        if (cur.lab.shortProbes) {
+          cur.lab.shortProbes.call(cur.lab, cur.state);
+          cur.view.dirty = true;
+          updateAll();
+          schedulePlot(); scheduleConclusion();
+          toast('红黑表笔已短接，请拖动欧姆调零旋钮到 0 Ω');
+        }
+      }
       else if (action === 'mark-complete' && state.currentLab) markComplete(state.currentLab.exp, true);
       else if (action === 'csv') { if (state.currentLab) exportCSV(); else if (OL.workshop) OL.workshop.exportAll(); }
       else if (action === 'screenshot') screenshot();
@@ -1905,11 +1941,16 @@
           const open = !card.classList.contains('theater');
           card.classList.toggle('theater', open);
           document.body.classList.toggle('stage-theater', open);
+          try {
+            if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+              window.chrome.webview.postMessage(open ? 'fullscreen:on' : 'fullscreen:off');
+            }
+          } catch (e) { }
           const btn = $('[data-action="expand"]');
           if (btn) btn.setAttribute('aria-label', open ? '还原实验舞台' : '放大实验舞台');
           if (state.currentLab) {
             state.currentLab.view.dirty = true;
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 80);
           }
         }
       }
@@ -1936,6 +1977,11 @@
         const card = $('#stageCard');
         if (card) card.classList.remove('theater');
         document.body.classList.remove('stage-theater');
+        try {
+          if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
+            window.chrome.webview.postMessage('fullscreen:off');
+          }
+        } catch (e) { }
         window.dispatchEvent(new Event('resize'));
       }
       setFontPanel(false);
@@ -2058,6 +2104,7 @@
     if (e.target.closest('.palette') || e.target.closest('#searchShell')) return;
     closePalette();
   });
+  window.addEventListener('resize', () => { if (state.paletteOpen) positionPalette(); });
   $('#helpBtn').addEventListener('click', openHelp);
   const sidebarToggle = $('#sidebarToggle');
   function setSidebarFocus(focus) {
@@ -2073,6 +2120,7 @@
         state.currentLab.view.dirty = true;
         if (state.currentLab.chart) state.currentLab.chart.draw();
       }
+      if (state.paletteOpen) positionPalette();
     }, 420 / state.animSpeed);
   }
   if (sidebarToggle) sidebarToggle.addEventListener('click', () => setSidebarFocus(!state.focus));
