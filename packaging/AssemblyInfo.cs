@@ -6,6 +6,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCompany("中山市中山纪念中学")]
 [assembly: AssemblyProduct("中山市中山纪念中学物理实验室")]
 [assembly: AssemblyCopyright("Copyright © 2026 中山市中山纪念中学")]
-[assembly: AssemblyVersion("0.7.2.0")]
-[assembly: AssemblyFileVersion("0.7.2.0")]
+[assembly: AssemblyVersion("0.7.3.0")]
+[assembly: AssemblyFileVersion("0.7.3.0")]
 [assembly: ComVisible(false)]

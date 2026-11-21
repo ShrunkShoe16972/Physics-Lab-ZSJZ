@@ -847,12 +847,15 @@ body.focus-mode .sidebar-toggle svg { transform: rotate(180deg); }
 .stage-card:fullscreen { border-radius: 0; min-height: 100vh; }
 .stage-card:fullscreen .stage-wrap { min-height: 0; }
 body.stage-theater { overflow: hidden; }
-body.stage-theater .topbar { display: none; }
-body.stage-theater .sidebar-toggle { display: none; }
+body.stage-theater .topbar,
+body.stage-theater .sidebar,
+body.stage-theater .sidebar-toggle,
+body.stage-theater .mobile-scrim { display: none !important; }
+body.stage-theater .view { overflow: hidden; }
 .stage-card.theater {
-  position: fixed; inset: 0; z-index: 150; width: 100vw; height: 100vh;
-  min-height: 0; max-height: none; border-radius: 0; border: 0;
-  background: var(--stage); box-shadow: none;
+  position: fixed; inset: 0; z-index: 9999; width: 100vw; height: 100vh;
+  margin: 0; max-width: none; max-height: none; border-radius: 0; border: 0;
+  background: var(--stage); box-shadow: none; animation: none !important;
 }
 .stage-card.theater .stage-wrap { min-height: 0; }
 .stage-card.theater .stage-controls { top: 16px; right: 16px; max-height: calc(100% - 32px); }
