@@ -87,10 +87,11 @@
           <div class="crumb" id="crumb"><strong>概览</strong></div>
         </div>
         <div class="topbar-search">
-          <button class="search-trigger" id="searchBtn">
+          <div class="search-trigger" id="searchShell">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
-            <span>搜索实验、概念或公式</span><kbd>⌘ K</kbd>
-          </button>
+            <input id="globalSearchInput" type="text" placeholder="搜索实验、概念或公式" autocomplete="off" spellcheck="false" aria-label="搜索实验、概念或公式">
+            <kbd>⌘ K</kbd>
+          </div>
         </div>
         <div class="topbar-actions">
           <button class="icon-btn" id="helpBtn" title="快速指南" aria-label="快速指南"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.4a2.3 2.3 0 0 1 4.5.7c0 1.7-2.3 2-2.3 3.5"/><path d="M12 17h.01"/></svg></button>
@@ -102,7 +103,6 @@
   </div>
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
-  <div class="exp-preview" id="expPreview" aria-hidden="true"></div>
   <div class="modal-root" id="modalRoot" aria-hidden="true"></div>
   <div class="palette-root" id="paletteRoot" aria-hidden="true"></div>
   <div class="mobile-scrim" id="mobileScrim"></div>

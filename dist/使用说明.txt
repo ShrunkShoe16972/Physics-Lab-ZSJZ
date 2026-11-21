@@ -1,8 +1,8 @@
-﻿中山市中山纪念中学物理实验室 v0.7.0
+﻿中山市中山纪念中学物理实验室 v0.7.1
 独立桌面版 · Windows 10 / 11 x64
 
 使用方法
-1. 双击 PrismLab-0.7.0.exe
+1. 双击 PrismLab-0.7.1.exe
 2. 程序启动独立 WinForms 窗口，内置 WebView2，不再调用 Chrome / Edge 浏览器
 3. 本机需要 Microsoft Edge WebView2 Runtime（Windows 11 通常自带）
 4. 关闭窗口即退出；系统托盘仍可重新打开或退出
@@ -15,7 +15,7 @@
   指纹：4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59
 - 自签名证书不是公共 CA 证书，Windows 可能仍提示“未知发布者”。
 
-版本：0.7.0
-SHA-256：1CA3B9F19C36731EAEE1B62D97087A553FB040C74EA298A95F4034183EF7EA6E
+版本：0.7.1
+SHA-256：F5871C5A106193ECEF9592681789C2A8E1E96EA05815810E963D592092CC9BCD
 
-文件大小：5148784 bytes
+文件大小：5150320 bytes

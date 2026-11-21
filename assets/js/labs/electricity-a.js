@@ -455,6 +455,22 @@
   };
   const PROBE_TERMINALS = [{ x: 622, y: 222 }, { x: 812, y: 222 }];
   const PROBE_HOME = { red: { x: 520, y: 340 }, black: { x: 850, y: 340 } };
+  const MM = {
+    body: { x: 66, y: 36, w: 304, h: 392 },
+    dial: { x: 216, y: 268, r: 50 },
+    zero: { x: 306, y: 320, r: 19 },
+    jacks: [{ x: 120, y: 380, label: '+' }, { x: 168, y: 380, label: 'COM' }]
+  };
+  const MODE_ORDER = ['resistance', 'voltage', 'current'];
+  const MODE_ANGLES = { resistance: -2.35, voltage: -1.15, current: 0.12 };
+  function modeFromAngle(a) {
+    let best = 'resistance', d = 99;
+    MODE_ORDER.forEach((m) => {
+      let delta = Math.abs(Math.atan2(Math.sin(a - MODE_ANGLES[m]), Math.cos(a - MODE_ANGLES[m])));
+      if (delta < d) { d = delta; best = m; }
+    });
+    return best;
+  }
 
   function resetProbes(state) {
     state._probe = {
@@ -462,7 +478,9 @@
       black: { x: PROBE_HOME.black.x, y: PROBE_HOME.black.y, attached: null }
     };
     state._connected = false;
+    state._short = false;
     state._drag = null;
+    if (state.ohmZero == null) state.ohmZero = 0.5;
   }
 
   function stagePoint(view, p) {
@@ -483,7 +501,10 @@
   function refreshConnection(state) {
     const r = state._probe && state._probe.red;
     const b = state._probe && state._probe.black;
-    state._connected = !!(r && b && r.attached != null && b.attached != null && r.attached !== b.attached);
+    const same = !!(r && b && r.attached != null && b.attached != null && r.attached === b.attached);
+    const different = !!(r && b && r.attached != null && b.attached != null && r.attached !== b.attached);
+    state._connected = different || (same && state.mode === 'resistance');
+    state._short = same && state.mode === 'resistance';
   }
 
   function probeDistance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -495,6 +516,8 @@
     pointer: true,
     hint: '拖动红黑表笔，分别接触待测元件两端 · 红表笔接“+”，黑表笔接“COM”',
     init(state, view) {
+      state.ohmZero = 0.5;
+      state.zeroDirty = false;
       resetProbes(state);
       view._frame = null;
     },
@@ -514,10 +537,17 @@
       }
       if (state.mode === 'resistance') {
         if (state.component === 'battery') { display = 'OL'; note = '带电元件不能直接测电阻'; return { display, unit, overload: true, note, comp, connected }; }
-        value = comp.R;
-        if (state.range === 'low' && value > 200) { display = '1 .'; overload = true; note = '超出低量程，请换高量程'; }
-        else display = U.fmt(value, 1);
-        note = note || '欧姆挡使用内部电源，测量前需调零';
+        const zeroOffset = (0.5 - (state.ohmZero == null ? 0.5 : state.ohmZero)) * 36;
+        if (state._short) {
+          value = Math.max(0, zeroOffset);
+          display = U.fmt(value, 1);
+          note = Math.abs(value) < 0.6 ? '指针已在 0 Ω，欧姆调零完成' : '短接表笔，转动右侧欧姆调零旋钮，使指针到 0 Ω';
+        } else {
+          value = Math.max(0, comp.R + zeroOffset);
+          if (state.range === 'low' && value > 200) { display = '1 .'; overload = true; note = '超出低量程，请换高量程'; }
+          else display = U.fmt(value, 1);
+          note = note || '欧姆挡使用内部电源，测量前需短接表笔调零';
+        }
       } else if (state.mode === 'voltage') {
         value = state.component === 'battery' ? comp.V : 0;
         if (state.range === 'low' && value > 2) { display = '1 .'; overload = true; note = '超出 2 V 量程'; }
@@ -536,6 +566,16 @@
       if (!state._probe) resetProbes(state);
       const q = stagePoint(view, p);
       const probes = state._probe;
+      if (Math.hypot(q.x - MM.dial.x, q.y - MM.dial.y) <= MM.dial.r + 16) {
+        state._drag = 'dial';
+        this._turnDial(q, state);
+        return true;
+      }
+      if (Math.hypot(q.x - MM.zero.x, q.y - MM.zero.y) <= MM.zero.r + 10) {
+        state._drag = 'zero';
+        this._turnZero(q, state);
+        return true;
+      }
       const candidates = [
         { key: 'red', d: probeDistance(q, probes.red) },
         { key: 'black', d: probeDistance(q, probes.black) }
@@ -546,9 +586,27 @@
       refreshConnection(state);
       return true;
     },
+    _turnDial(q, state) {
+      const a = Math.atan2(q.y - MM.dial.y, q.x - MM.dial.x);
+      const mode = modeFromAngle(a);
+      if (mode !== state.mode) {
+        state.mode = mode;
+        const sel = document.querySelector('select[data-control-select="mode"]');
+        if (sel && sel.value !== mode) { sel.value = mode; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      state.zeroDirty = true;
+    },
+    _turnZero(q, state) {
+      const a = Math.atan2(q.y - MM.zero.y, q.x - MM.zero.x);
+      state.ohmZero = U.clamp((a + Math.PI) / (Math.PI * 2), 0.04, 0.96);
+      state.zeroDirty = true;
+    },
     onPointerMove(p, state, view) {
-      if (!state._drag || !state._probe) return;
+      if (!state._drag) return;
       const q = stagePoint(view, p);
+      if (state._drag === 'dial') { this._turnDial(q, state); refreshConnection(state); return; }
+      if (state._drag === 'zero') { this._turnZero(q, state); return; }
+      if (!state._probe) return;
       const pr = state._probe[state._drag];
       pr.x = U.clamp(q.x, 12, 888);
       pr.y = U.clamp(q.y, 12, 448);
@@ -562,7 +620,8 @@
     },
     onPointerUp(p, state, view) {
       if (!state._drag) return;
-      this.onPointerMove(p, state, view);
+      const drag = state._drag;
+      if (drag !== 'dial' && drag !== 'zero') this.onPointerMove(p, state, view);
       state._drag = null;
       refreshConnection(state);
     },
@@ -572,43 +631,71 @@
       view._frame = { s: f.s, ox: f.ox, oy: f.oy, W: f.W, H: f.H };
       const m = this._measure(state);
       const comp = m.comp;
-      // body
+      // instrument body (MF47-style analog multimeter)
       ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8;
-      C.fillRound(ctx, 86, 50, 262, 360, 22, 'rgba(32,40,55,.96)');
+      ctx.shadowColor = 'rgba(0,0,0,.42)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+      C.fillRound(ctx, MM.body.x, MM.body.y, MM.body.w, MM.body.h, 18, '#232936');
       ctx.restore();
-      C.roundRect(ctx, 86, 50, 262, 360, 22);
-      ctx.strokeStyle = 'rgba(160,190,235,.18)'; ctx.lineWidth = 1; ctx.stroke();
-      // LCD
-      C.fillRound(ctx, 110, 76, 214, 88, 8, '#c8d8b4');
-      C.fillRound(ctx, 110, 76, 214, 88, 8, 'rgba(210,226,180,.92)');
-      C.label(ctx, m.display, 316, 132, { size: 34, align: 'right', color: '#24301c', mono: true, weight: 600 });
-      C.label(ctx, m.unit, 316, 153, { size: 10, align: 'right', color: 'rgba(36,48,28,.7)', mono: true });
-      C.label(ctx, state.mode === 'resistance' ? 'Ω' : state.mode === 'voltage' ? 'DC V' : 'DC mA', 126, 98, { size: 9, color: 'rgba(36,48,28,.65)', mono: true });
-      C.label(ctx, state.range === 'auto' ? 'AUTO' : state.range === 'low' ? 'LOW' : 'HIGH', 126, 114, { size: 8, color: 'rgba(36,48,28,.5)', mono: true });
-      if (m.overload) C.label(ctx, 'OVER', 308, 98, { size: 8, align: 'right', color: '#a33a2a', mono: true });
-      if (!m.connected) C.label(ctx, 'LEADS', 308, 98, { size: 8, align: 'right', color: 'rgba(36,48,28,.5)', mono: true });
-      // dial
-      const cx = 216, cy = 248, r = 52;
-      C.dot(ctx, cx, cy, r + 5, 'rgba(15,21,32,.9)');
-      K.arc(ctx, cx, cy, r, 0, Math.PI * 2, 'rgba(180,205,240,.25)', 1);
-      for (let i = -4; i <= 4; i++) {
-        const a = Math.PI / 2 + i * 0.22;
-        C.line(ctx, cx + Math.cos(a) * (r - 8), cy + Math.sin(a) * (r - 8), cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), 'rgba(210,225,245,.32)', 1);
+      C.fillRound(ctx, MM.body.x + 5, MM.body.y + 5, MM.body.w - 10, MM.body.h - 10, 15, '#eee4d2');
+      C.roundRect(ctx, MM.body.x, MM.body.y, MM.body.w, MM.body.h, 18);
+      ctx.strokeStyle = 'rgba(160,140,110,.65)'; ctx.lineWidth = 1; ctx.stroke();
+      C.label(ctx, 'MF-47', 92, 66, { size: 10, color: 'rgba(70,62,48,.78)', mono: true, weight: 700 });
+      C.label(ctx, 'MULTIMETER', 344, 66, { size: 7, align: 'right', color: 'rgba(70,62,48,.48)' });
+      // analog face
+      C.fillRound(ctx, 88, 76, 260, 132, 10, '#f9f4e8');
+      C.roundRect(ctx, 88, 76, 260, 132, 10);
+      ctx.strokeStyle = 'rgba(100,88,68,.3)'; ctx.lineWidth = 1; ctx.stroke();
+      const ax = 218, ay = 186, ar = 91;
+      K.arc(ctx, ax, ay, ar, Math.PI * 1.08, Math.PI * 1.92, 'rgba(52,48,40,.7)', 1.2);
+      for (let i = 0; i <= 30; i++) {
+        const a = Math.PI * 1.08 + Math.PI * .84 * i / 30;
+        const major = i % 5 === 0;
+        C.line(ctx, ax + Math.cos(a) * (ar - (major ? 12 : 7)), ay + Math.sin(a) * (ar - (major ? 12 : 7)), ax + Math.cos(a) * ar, ay + Math.sin(a) * ar, major ? 'rgba(40,38,32,.9)' : 'rgba(70,66,56,.45)', major ? 1.1 : .6);
       }
-      const dialAngle = state.mode === 'resistance' ? -1.35 : state.mode === 'voltage' ? -0.45 : 0.45;
-      C.line(ctx, cx, cy, cx + Math.cos(dialAngle) * (r - 14), cy + Math.sin(dialAngle) * (r - 14), '#ffb340', 2.4);
-      C.dot(ctx, cx, cy, 11, 'rgba(48,58,76,1)');
-      C.dot(ctx, cx, cy, 5, 'rgba(160,180,210,.4)');
-      C.label(ctx, 'Ω', cx - 36, cy - 28, { size: 7, color: 'rgba(230,240,255,.4)' });
-      C.label(ctx, 'V', cx - 8, cy - 43, { size: 7, color: 'rgba(230,240,255,.4)' });
-      C.label(ctx, 'mA', cx + 23, cy - 34, { size: 7, color: 'rgba(230,240,255,.4)' });
-      // jacks
-      ['+', 'COM'].forEach((t, i) => {
-        const x = 132 + i * 44;
-        C.dot(ctx, x, 370, 10, '#1a2231');
-        C.dot(ctx, x, 370, 6, i === 0 ? '#e05a4f' : '#252b36');
-        C.label(ctx, t, x, 390, { size: 7, align: 'center', color: 'rgba(230,240,255,.38)' });
+      C.label(ctx, '0', ax - ar + 7, ay + 19, { size: 8, color: 'rgba(50,46,38,.75)', mono: true });
+      C.label(ctx, '∞', ax + ar - 11, ay + 19, { size: 10, color: 'rgba(50,46,38,.75)', mono: true });
+      C.label(ctx, 'Ω', ax - 23, ay - 27, { size: 9, color: 'rgba(50,46,38,.6)', mono: true });
+      const norm = !m.connected ? 0 : (m.overload ? 1 : state.mode === 'resistance' ? Math.min(1, (m.value || 0) / 1000) : state.mode === 'voltage' ? Math.min(1, (m.value || 0) / 3) : Math.min(1, (m.value || 0) / 200));
+      const needleA = Math.PI * 1.08 + Math.PI * .84 * norm;
+      C.line(ctx, ax, ay, ax + Math.cos(needleA) * (ar - 9), ay + Math.sin(needleA) * (ar - 9), '#c83b2d', 1.7);
+      C.dot(ctx, ax, ay, 4.5, '#3c3428');
+      C.fillRound(ctx, 236, 156, 104, 40, 4, '#d6dfc2');
+      C.label(ctx, m.display, 332, 178, { size: 23, align: 'right', color: '#26301f', mono: true, weight: 600 });
+      C.label(ctx, m.unit, 332, 191, { size: 7, align: 'right', color: 'rgba(38,48,30,.62)', mono: true });
+      C.label(ctx, state.mode === 'resistance' ? 'Ω' : state.mode === 'voltage' ? 'DCV' : 'DCmA', 242, 170, { size: 7, color: 'rgba(38,48,30,.55)', mono: true });
+      // rotary selector
+      const cx = MM.dial.x, cy = MM.dial.y, r = MM.dial.r;
+      C.dot(ctx, cx, cy, r + 7, 'rgba(22,26,34,.96)');
+      C.dot(ctx, cx, cy, r, '#d9d0be');
+      K.arc(ctx, cx, cy, r - 4, 0, Math.PI * 2, 'rgba(60,55,45,.5)', 1);
+      for (let i = 0; i < 24; i++) {
+        const a = i / 24 * Math.PI * 2;
+        C.line(ctx, cx + Math.cos(a) * (r - 7), cy + Math.sin(a) * (r - 7), cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), 'rgba(70,64,52,.42)', .7);
+      }
+      const dialAngle = MODE_ANGLES[state.mode] || MODE_ANGLES.resistance;
+      C.line(ctx, cx, cy, cx + Math.cos(dialAngle) * (r - 12), cy + Math.sin(dialAngle) * (r - 12), '#f4f1e8', 5);
+      C.dot(ctx, cx, cy, 15, '#3d434e');
+      C.dot(ctx, cx, cy, 8, '#aeb6c2');
+      C.label(ctx, 'Ω', cx + Math.cos(MODE_ANGLES.resistance) * (r + 22), cy + Math.sin(MODE_ANGLES.resistance) * (r + 22) + 3, { size: 8, align: 'center', color: 'rgba(230,240,255,.7)', mono: true });
+      C.label(ctx, 'V', cx + Math.cos(MODE_ANGLES.voltage) * (r + 22), cy + Math.sin(MODE_ANGLES.voltage) * (r + 22) + 3, { size: 8, align: 'center', color: 'rgba(230,240,255,.7)', mono: true });
+      C.label(ctx, 'mA', cx + Math.cos(MODE_ANGLES.current) * (r + 22), cy + Math.sin(MODE_ANGLES.current) * (r + 22) + 3, { size: 8, align: 'center', color: 'rgba(230,240,255,.7)', mono: true });
+      C.label(ctx, '挡位选择', cx, cy + r + 11, { size: 7, align: 'center', color: 'rgba(230,240,255,.38)' });
+      // ohm-zero knob
+      const zx = MM.zero.x, zy = MM.zero.y;
+      C.dot(ctx, zx, zy, MM.zero.r, '#d8cfbd');
+      C.dot(ctx, zx, zy, MM.zero.r - 4, '#3d434e');
+      const za = -Math.PI + state.ohmZero * Math.PI * 2;
+      C.line(ctx, zx, zy, zx + Math.cos(za) * (MM.zero.r - 5), zy + Math.sin(za) * (MM.zero.r - 5), '#f4f1e8', 2.5);
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        C.line(ctx, zx + Math.cos(a) * (MM.zero.r - 2), zy + Math.sin(a) * (MM.zero.r - 2), zx + Math.cos(a) * (MM.zero.r + 1), zy + Math.sin(a) * (MM.zero.r + 1), 'rgba(30,35,44,.6)', .8);
+      }
+      C.label(ctx, 'Ω 调零', zx, zy + MM.zero.r + 12, { size: 7, align: 'center', color: 'rgba(230,240,255,.62)' });
+      // input jacks
+      MM.jacks.forEach((jack, i) => {
+        C.dot(ctx, jack.x, jack.y, 11, '#1a202a');
+        C.dot(ctx, jack.x, jack.y, 7, i === 0 ? '#d84f43' : '#20242c');
+        C.label(ctx, jack.label, jack.x, jack.y + 21, { size: 7, align: 'center', color: 'rgba(230,240,255,.5)' });
       });
 
       if (!state._probe) resetProbes(state);
@@ -621,8 +708,8 @@
         ctx.bezierCurveTo(jack.x + 130, jack.y + 38, probe.x - 90, probe.y + 62, probe.x, probe.y);
         ctx.stroke();
       };
-      drawLead({ x: 132, y: 370 }, probes.red, '#e05a4f');
-      drawLead({ x: 176, y: 370 }, probes.black, '#596273');
+      drawLead(MM.jacks[0], probes.red, '#e05a4f');
+      drawLead(MM.jacks[1], probes.black, '#596273');
       ctx.restore();
 
       // component panel
@@ -672,6 +759,7 @@
         K.readout('当前读数', m.display + ' ' + m.unit, ''),
         K.readout('测量功能', state.mode === 'resistance' ? '电阻' : state.mode === 'voltage' ? '直流电压' : '直流电流', ''),
         K.readout('量程', state.range === 'auto' ? '自动' : state.range === 'low' ? '低' : '高', ''),
+        K.readout('欧姆调零', state.mode === 'resistance' ? (state._short ? '短接中' : '待调零') : '不适用', ''),
         K.readout('接线状态', m.connected ? '已接通' : '待接线', '')
       ];
     },
@@ -704,8 +792,8 @@
     },
     conclusion(state) {
       const m = this._measure(state);
-      if (!m.connected) return '<b>接线提示：</b>拖动红色和黑色表笔，让两个笔尖分别接触待测元件的两端；只有两端都接通后，表盘才会显示读数。';
-      return '<b>结论：</b>多用电表通过切换内部电路实现不同测量。当前 ' + m.comp.label + ' 的读数为 <b>' + m.display + ' ' + m.unit + '</b>。' + (m.overload ? ' ⚠ ' + m.note + '。' : ' 注意：欧姆挡刻度不均匀，换挡后要重新调零。');
+      if (!m.connected) return '<b>接线提示：</b>拖动红色和黑色表笔，让两个笔尖分别接触待测元件的两端；只有两端都接通后，表盘才会显示读数。<br><b>欧姆调零：</b>把两表笔短接在同一接线柱上，转动电表右侧“Ω 调零”旋钮，直到指针指到 0 Ω。';
+      return '<b>结论：</b>多用电表通过旋转挡位旋钮切换内部电路。当前 ' + m.comp.label + ' 的读数为 <b>' + m.display + ' ' + m.unit + '</b>。' + (m.overload ? ' ⚠ ' + m.note + '。' : ' 注意：欧姆挡刻度不均匀，换挡后要重新短接表笔调零。');
     }
   });
 })();
