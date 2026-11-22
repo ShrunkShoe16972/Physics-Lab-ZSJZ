@@ -124,7 +124,8 @@
     id: 'resistivity',
     live: false,
     playable: true,
-    hint: '伏安法测 R · 结合长度与直径求 ρ',
+    hint: '用游标卡尺测 L，用螺旋测微器测 d，再由伏安法求 R 与 ρ',
+    extraControls: '<div class="measure-help-row"><button class="btn ghost small" data-action="measure-help" data-measure="caliper">游标卡尺用法</button><button class="btn ghost small" data-action="measure-help" data-measure="micrometer">螺旋测微器用法</button></div>',
     step(state, dt, view) { view.t += dt; },
     _calc(state) {
       const mat = MATERIALS[state.material] || MATERIALS.nichrome;
@@ -186,6 +187,45 @@
       C.label(ctx, '电阻率 ρ', 578, 327, { size: 8, color: 'rgba(230,240,255,.32)' });
       C.label(ctx, U.sci(q.mat.rho, 2) + ' Ω·m', 578, 347, { size: 14, color: '#30d158', mono: true });
       C.label(ctx, '真实值 ' + q.mat.name + ' ' + U.sci(q.mat.rho, 1) + ' Ω·m', 700, 301, { size: 7, color: 'rgba(230,240,255,.3)' });
+
+      // vernier caliper (length measurement)
+      K.panel(ctx, 40, 368, 392, 84, { fill: 'rgba(9,15,26,.62)', stroke: 'rgba(150,180,220,.16)' });
+      C.label(ctx, '游标卡尺 · 测有效长度 L', 54, 386, { size: 7.5, color: 'rgba(230,240,255,.5)' });
+      C.fillRound(ctx, 58, 398, 330, 13, 3, 'rgba(198,207,219,.72)');
+      C.fillRound(ctx, 58, 411, 330, 5, 2, 'rgba(120,132,148,.8)');
+      for (let i = 0; i <= 33; i++) {
+        const tx = 62 + i * 9.7;
+        C.line(ctx, tx, 398, tx, 398 - (i % 5 === 0 ? 8 : 4), 'rgba(28,36,48,.75)', .8);
+      }
+      const jawX = 94 + (state.L / 1.2) * 250;
+      C.line(ctx, 90, 394, 90, 414, 'rgba(28,36,48,.95)', 5);
+      C.line(ctx, jawX, 394, jawX, 418, 'rgba(28,36,48,.95)', 5);
+      C.line(ctx, 90, 406, jawX, 406, q.mat.color, 4);
+      C.fillRound(ctx, jawX - 4, 416, 92, 9, 2, 'rgba(210,220,234,.88)');
+      C.label(ctx, '0', jawX, 432, { size: 6, align: 'center', color: 'rgba(230,240,255,.4)', mono: true });
+      C.label(ctx, '10', jawX + 78, 432, { size: 6, align: 'center', color: 'rgba(230,240,255,.4)', mono: true });
+      C.label(ctx, 'L = ' + U.fmt(state.L, 2) + ' m', 300, 390, { size: 8, align: 'right', color: '#ffd166', mono: true });
+      C.label(ctx, '读数 = 主尺 + 对齐格数 × 0.02 mm', 54, 442, { size: 6.5, color: 'rgba(230,240,255,.35)' });
+
+      // micrometer screw gauge (diameter measurement)
+      K.panel(ctx, 460, 368, 382, 84, { fill: 'rgba(9,15,26,.62)', stroke: 'rgba(150,180,220,.16)' });
+      C.label(ctx, '螺旋测微器 · 测直径 d', 474, 386, { size: 7.5, color: 'rgba(230,240,255,.5)' });
+      C.fillRound(ctx, 486, 408, 145, 13, 4, 'rgba(181,192,207,.7)');
+      C.fillRound(ctx, 486, 408, 12, 28, 4, 'rgba(130,143,160,.9)');
+      C.line(ctx, 510, 403, 510, 426, 'rgba(30,40,54,.9)', 5);
+      const sleeveX = 556 + (state.d / 1) * 95;
+      C.line(ctx, 510, 414, sleeveX, 414, q.mat.color, 6);
+      C.line(ctx, 510, 414, sleeveX, 414, 'rgba(255,255,255,.32)', 1);
+      C.dot(ctx, sleeveX, 414, 12, 'rgba(181,192,207,.9)');
+      C.dot(ctx, sleeveX, 414, 8, '#394455');
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * Math.PI * 2;
+        C.line(ctx, sleeveX + Math.cos(a) * 8, 414 + Math.sin(a) * 8, sleeveX + Math.cos(a) * 12, 414 + Math.sin(a) * 12, 'rgba(30,40,54,.75)', .8);
+      }
+      C.line(ctx, 638, 404, 638, 426, 'rgba(210,220,234,.9)', 4);
+      C.fillRound(ctx, 642, 420, 90, 8, 2, 'rgba(120,132,148,.65)');
+      C.label(ctx, 'd = ' + U.fmt(state.d, 2) + ' mm', 824, 390, { size: 8, align: 'right', color: '#ffd166', mono: true });
+      C.label(ctx, '读数 = 固定刻度 + 可动刻度 × 0.01 mm', 474, 442, { size: 6.5, color: 'rgba(230,240,255,.35)' });
       f.restore();
     },
     readouts(state) {

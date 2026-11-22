@@ -669,6 +669,20 @@
     }, 220 / state.animSpeed);
   }
 
+  function openMeasureHelp(kind) {
+    if (kind === 'micrometer') {
+      openModal('螺旋测微器使用方法', [
+        '<p style="margin:0 0 12px;color:var(--text-2);font-size:12px;line-height:1.7">螺旋测微器（千分尺）用于测量金属丝的直径，精度 0.01 mm，需估读到 0.001 mm。</p>',
+        '<ol class="about-steps"><li>转动棘轮，使测砧与测微螺杆轻轻接触，检查零刻度。</li><li>把金属丝夹在测砧与螺杆之间，听到棘轮“咔哒”声后停止，避免压扁金属丝。</li><li>先读固定刻度（主尺），注意半毫米刻度是否露出。</li><li>再读可动刻度（套筒），估读到 0.001 mm。</li><li>读数 = 固定刻度 + 可动刻度 × 0.01 mm。</li><li>在金属丝的不同位置测三次，取平均值。</li></ol>'
+      ].join(''), { sub: '螺旋测微器 · 0.01 mm' });
+      return;
+    }
+    openModal('游标卡尺使用方法', [
+      '<p style="margin:0 0 12px;color:var(--text-2);font-size:12px;line-height:1.7">游标卡尺用于测量金属丝的有效长度，常用精度为 0.02 mm 或 0.05 mm。</p>',
+      '<ol class="about-steps"><li>合拢两个外测量爪，检查主尺与游标零刻度是否对齐。</li><li>将被测金属丝夹在外测量爪之间，不要用力过猛。</li><li>先读主尺上离游标零刻线最近的整毫米数。</li><li>再找游标上与主尺刻度对齐的格数。</li><li>读数 = 主尺读数 + 对齐格数 × 精度；0.02 mm 卡尺读到 0.02 mm。</li><li>在不同位置测量三次，取平均值作为有效长度 L。</li></ol>'
+    ].join(''), { sub: '游标卡尺 · 0.02 mm' });
+  }
+
   function openHelp() {
     openModal('快速指南', [
       '<p style="margin:0 0 14px;color:var(--text-2);font-size:12px;line-height:1.7">中山市中山纪念中学物理实验室把高中物理的 22 个基本实验做成了可交互的模拟器。每个实验都提供实时读数、图像探究与实验向导。</p>',
@@ -1318,18 +1332,19 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.7.3</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.8.0</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.7.3</strong><span>2026-11-21</span></div>' +
-      '<p>实验舞台在放大时移出页面层级，挂载到 body 并隐藏侧边栏/顶部栏，真正铺满 1920×1080 整块屏幕。</p>' +
+      '<div class="about-version-row"><strong>0.8.0</strong><span>2026-11-22</span></div>' +
+      '<p>胡克定律与等效替代法原理更新；电阻率实验加入游标卡尺、螺旋测微器和使用方法；向心力实验按手摇演示器重建为可拖动手柄/小球的 3D 风格装置。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.7.3</b><span>2026-11-21</span><p>实验放大时将舞台从 .lab-page 移到 body，彻底摆脱侧栏/内容容器的定位限制；全屏时隐藏侧边栏、顶部栏和滚动条，实测舞台 0,0 到 1920×1080 完整铺满。</p></div>' +
+      '<div class="about-changelog"><div><b>0.8.0</b><span>2026-11-22</span><p>胡克定律改为二力平衡表述；平行四边形实验原理改为等效替代法并移除公式；电阻率实验加入游标卡尺、螺旋测微器及使用方法弹窗；向心力实验按手摇演示器重绘为可交互 3D 风格装置。</p></div>' +
+      '<div><b>0.7.3</b><span>2026-11-21</span><p>实验放大时将舞台从 .lab-page 移到 body，彻底摆脱侧栏/内容容器的定位限制；全屏时隐藏侧边栏、顶部栏和滚动条，实测舞台 0,0 到 1920×1080 完整铺满。</p></div>' +
       '<div><b>0.7.2</b><span>2026-11-21</span><p>实验放大改为原生窗口全屏并覆盖整块电脑屏幕；多用电表增加“短接表笔”与可拖动欧姆调零旋钮；搜索下拉固定在搜索框正下方；删除右侧实时读数，数据与图像框移至实验右侧。</p></div>' +
       '<div><b>0.7.1</b><span>2026-11-21</span><p>修复搜索框与侧边栏错位、去掉重复搜索框和缩略图；放大实验向导；统一实验舞台按钮；全屏放大后可继续拖动/点击；多用电表增加挡位旋钮、欧姆调零旋钮与表笔互动。</p></div>' +
       '<div><b>0.7.0</b><span>2026-11-21</span><p>独立 WebView2 桌面窗口，不再调用 Chrome；实验参数移入实验窗口；实验向导置顶；新增易错点；纪中牌坊默认壁纸；搜索栏居中下拉；电表重绘；修正三个教材实验。</p></div>' +
@@ -1339,12 +1354,12 @@
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.7.3-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.8.0-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
       '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
       '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>代码签名证书</h2><span class="pill green">CODE SIGNING</span></div>' +
-      '<p>0.7.3 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
+      '<p>0.8.0 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
       '<p class="about-muted">证书公钥位于 <code>packaging/certs/PrismLab-CodeSigning.cer</code>。它不是公共 CA 证书，Windows 默认仍可能提示“未知发布者”；可将公钥安装到“受信任的发布者”后消除提示。</p></section>' +
       '</div></div>';
   }
@@ -1410,7 +1425,7 @@
       (exp.stepVersions ? '<div class="step-switch"><button data-step-variant="simple" class="' + (view.stepVariant === 'simple' ? 'active' : '') + '">简易</button><button data-step-variant="complex" class="' + (view.stepVariant === 'complex' ? 'active' : '') + '">复杂</button></div>' : '') +
       '</div><ol class="steps wizard-steps" id="steps">' + stepHTML + '</ol><div class="conclusion" id="conclusion">' + ui('info') + '<span>调整变量并采集数据，结论会在这里更新。</span></div></section>' +
       '<section class="principle-banner"><div class="principle-badge">' + ui('info') + '<span>实验原理</span></div>' +
-      '<div class="principle-main"><div class="principle-formula"><div class="formula-tex" id="principleFormula">' + OL.tex.render(display.formulaTex || display.formula, true) + '</div><button class="icon-btn copy-code" id="principleCopy" data-copy="' + U.esc(display.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
+      '<div class="principle-main"><div class="principle-formula"><div class="formula-tex" id="principleFormula">' + (display.formulaPlain ? '<span class="formula-plain">' + U.esc(display.formula) + '</span>' : OL.tex.render(display.formulaTex || display.formula, true)) + '</div><button class="icon-btn copy-code" id="principleCopy" data-copy="' + U.esc(display.formula) + '" title="复制公式">' + ui('copy') + '</button></div>' +
       '<p id="principlePrinciple">' + U.esc(display.principle) + '</p>' +
       (display.formulaNote ? '<div class="principle-note" id="principleNote">' + U.esc(display.formulaNote) + '</div>' : '<div class="principle-note" id="principleNote"></div>') +
       '</div></section>' +
@@ -1924,6 +1939,7 @@
       else if (action === 'open-settings') openSettings();
       else if (action === 'error-analysis') openErrorAnalysis();
       else if (action === 'mistakes') openMistakes();
+      else if (action === 'measure-help') openMeasureHelp(act.dataset.measure);
       else if (action === 'toggle-params') {
         const panel = $('#stageControls');
         if (panel) panel.classList.toggle('collapsed');

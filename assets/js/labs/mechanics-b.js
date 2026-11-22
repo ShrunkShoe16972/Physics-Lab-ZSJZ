@@ -9,6 +9,12 @@
   const U = OL.utils;
   const P = OL.palette;
 
+  function localPoint(view, p) {
+    const f = view && view._frame;
+    if (!f || !f.s) return null;
+    return { x: (p.x - f.ox) / f.s, y: (p.y - f.oy) / f.s };
+  }
+
   /* ------------------------------------------------------------
      06 · 探究向心力的大小
      ------------------------------------------------------------ */
@@ -16,82 +22,208 @@
     id: 'centripetal',
     live: false,
     playable: true,
-    hint: '播放观察圆周运动 · 采集不同参数下的向心力',
+    pointer: true,
+    hint: '拖动手柄或小球 · 手柄带动小球做圆周运动',
     step(state, dt, view) { view.t += dt; },
-    draw(ctx, w, h, state, view) {
-      C.grid(ctx, w, h, { step: 36 });
-      const f = K.frame(ctx, w, h);
-      const cx = 410, cy = 254;
-      const rp = 82 + (state.r - 0.3) / 1.2 * 148;
-      const omega = state.omega;
-      const th = -view.t * omega - Math.PI / 2;
-      const bx = cx + Math.cos(th) * rp;
-      const by = cy + Math.sin(th) * rp;
-      const F = state.m * omega * omega * state.r;
-      const v = omega * state.r;
-
-      // radial guides
-      for (let i = 1; i <= 4; i++) {
-        ctx.save(); ctx.setLineDash([3, 6]); ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(cx, cy, rp * i / 4, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    onPointerDown(p, state, view) {
+      const q = localPoint(view, p);
+      if (!q) return false;
+      const balls = view._balls || [];
+      for (let i = 0; i < balls.length; i++) {
+        if (Math.hypot(q.x - balls[i].x, q.y - balls[i].y) < 24) {
+          state._drag = { type: 'ball' };
+          view.playing = false;
+          return true;
+        }
       }
-      // textbook-style centripetal-force demonstrator
-      K.panel(ctx, cx - 112, 398, 310, 28, { r: 7, fill: 'rgba(42,55,72,.92)', stroke: 'rgba(160,190,225,.25)' });
-      C.fillRound(ctx, cx - 8, 230, 16, 170, 6, 'rgba(145,158,174,.55)');
-      C.fillRound(ctx, cx - 82, 252, 164, 11, 5, 'rgba(186,197,210,.62)');
-      C.label(ctx, '向心力演示器', cx - 106, 414, { size: 7.5, color: 'rgba(225,236,250,.5)' });
-      // stepped pulleys and belt
-      ctx.beginPath(); ctx.arc(cx, 232, 17, 0, Math.PI * 2); ctx.fillStyle = 'rgba(150,163,180,.55)'; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 168, 232, 23, 0, Math.PI * 2); ctx.fillStyle = 'rgba(150,163,180,.55)'; ctx.fill();
-      C.line(ctx, cx - 17, 232, cx + 145, 232, 'rgba(55,66,82,.8)', 3);
-      C.line(ctx, cx - 17, 249, cx + 145, 249, 'rgba(55,66,82,.8)', 3);
-      C.label(ctx, '塔轮', cx + 62, 216, { size: 7.5, color: 'rgba(225,236,250,.42)' });
-      // hand crank
-      C.line(ctx, cx + 168, 232, cx + 168, 290, 'rgba(190,200,215,.55)', 3);
-      C.line(ctx, cx + 168, 290, cx + 202, 290, 'rgba(190,200,215,.55)', 4);
-      C.dot(ctx, cx + 202, 290, 7, '#b8c4d4', 6);
-      C.label(ctx, '转动手柄', cx + 198, 312, { size: 7.5, align: 'center', color: 'rgba(225,236,250,.42)' });
-      // spring sleeve and red/white scale
-      K.panel(ctx, cx - 27, cy - 19, 54, 38, { r: 7, fill: 'rgba(211,222,235,.9)', stroke: 'rgba(80,95,112,.45)' });
-      for (let i = 0; i < 5; i++) C.fillRound(ctx, cx - 19 + i * 7, cy - 7, 5, 18, 1, i % 2 ? '#c94b45' : '#eee7da');
-      C.label(ctx, '测力套筒', cx, cy - 25, { size: 7, align: 'center', color: 'rgba(225,236,250,.48)' });
-      // second ball on short arm (counterweight)
-      C.ball(ctx, cx - 55, cy, 8, ['#f3f5f8', '#bfc8d5', '#6f7c8f']);
-      // orbit
+      const c = view._crank;
+      if (c && Math.hypot(q.x - c.x, q.y - c.y) < 44) {
+        state._drag = { type: 'crank' };
+        state._lastCrank = Math.atan2(q.y - c.y, q.x - c.x);
+        view.playing = false;
+        return true;
+      }
+      return false;
+    },
+    onPointerMove(p, state, view) {
+      if (!state._drag) return;
+      const q = localPoint(view, p);
+      if (!q) return;
+      if (state._drag.type === 'crank') {
+        const c = view._crank;
+        if (!c) return;
+        const a = Math.atan2(q.y - c.y, q.x - c.x);
+        let d = a - (state._lastCrank == null ? a : state._lastCrank);
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        state._lastCrank = a;
+        if (Math.abs(d) > 0.0005) {
+          view.t -= d / Math.max(state.omega, 0.35);
+          view.dirty = true;
+        }
+        return;
+      }
+      if (state._drag.type === 'ball') {
+        const cx = 448, cy = 252;
+        const px = Math.hypot(q.x - cx, (q.y - cy) / 0.38);
+        state.r = U.clamp(0.3 + (px - 58) / 168 * 1.2, 0.3, 1.5);
+        const slider = document.querySelector('#ctl-r');
+        if (slider) {
+          slider.value = state.r.toFixed(2);
+          slider.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        view.dirty = true;
+      }
+    },
+    onPointerUp(p, state, view) {
+      state._drag = null;
+    },
+    draw(ctx, w, h, state, view) {
+      C.grid(ctx, w, h, { step: 34 });
+      const f = K.frame(ctx, w, h);
+      view._frame = { s: f.s, ox: f.ox, oy: f.oy, W: f.W, H: f.H };
+      const cx = 448, cy = 252;
+      const armPx = 58 + (state.r - 0.3) / 1.2 * 168;
+      const phase = -view.t * state.omega - Math.PI / 2;
+      const tilt = 0.38;
+      const ballAt = (a) => ({ x: cx + Math.cos(a) * armPx, y: cy + Math.sin(a) * armPx * tilt });
+      const b1 = ballAt(phase), b2 = ballAt(phase + Math.PI);
+      view._balls = [b1, b2];
+      const F = state.m * state.omega * state.omega * state.r;
+      const v = state.omega * state.r;
+
+      const poly = (pts, fill, stroke, lw) => {
+        ctx.beginPath();
+        pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+        ctx.closePath();
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+      };
+      const metal = (x, y, r, inner) => {
+        const g = ctx.createRadialGradient(x - r * .35, y - r * .4, 1, x, y, r);
+        g.addColorStop(0, '#f6f8fb'); g.addColorStop(.3, inner || '#cbd4df');
+        g.addColorStop(.75, '#7e8a9b'); g.addColorStop(1, '#3d4653');
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = 'rgba(30,38,50,.7)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(x - r * .35, y - r * .38, r * .22, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fill();
+      };
+
+      // floor shadow
       ctx.save();
-      ctx.setLineDash([5, 6]);
-      ctx.strokeStyle = 'rgba(100,180,255,.3)'; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(cx, cy, rp, 0, Math.PI * 2); ctx.stroke();
+      ctx.translate(0, 14);
+      ctx.filter = 'blur(12px)';
+      poly([[250, 380], [700, 340], [760, 385], [330, 425]], 'rgba(0,0,0,.38)');
       ctx.restore();
-      // swept arc
-      K.arc(ctx, cx, cy, rp * 0.36, -Math.PI / 2, th, 'rgba(100,210,255,.32)', 1.5);
 
-      // string
-      C.line(ctx, cx, cy, bx, by, 'rgba(225,238,255,.52)', 1.4);
-      C.line(ctx, cx, cy, bx, by, 'rgba(100,210,255,.2)', 1, [4, 4]);
-      C.label(ctx, 'r = ' + U.fmt(state.r, 2) + ' m', (cx + bx) / 2 + 12, (cy + by) / 2 + 4, { size: 8.5, color: 'rgba(100,210,255,.6)', mono: true });
-      C.label(ctx, 'F向 = ' + U.fmt(F, 1) + ' N', cx, cy + 54, { size: 9, align: 'center', color: '#64d2ff', mono: true });
-      // ball
-      C.glowCircle(ctx, bx, by, 40, '#5ca8ff', 0.32);
-      C.ball(ctx, bx, by, 10, ['#ffffff', '#a3d1ff', '#2b6fd3']);
-      // velocity tangent
-      const tx = -Math.sin(th), ty = Math.cos(th);
-      C.arrow(ctx, bx, by, bx + tx * Math.min(90, v * 18), by + ty * Math.min(90, v * 18), { color: '#64d2ff', width: 2, head: 8 });
-      C.label(ctx, 'v', bx + tx * Math.min(90, v * 18) + 8, by + ty * Math.min(90, v * 18), { size: 9, color: '#64d2ff', mono: true });
-      // centripetal force
-      const ux = (cx - bx) / rp, uy = (cy - by) / rp;
-      const fl = Math.min(110, 24 + F * 5);
-      C.arrow(ctx, bx, by, bx + ux * fl, by + uy * fl, { color: '#ffb340', width: 2.4, head: 9, glow: 8 });
-      C.label(ctx, 'F向', bx + ux * fl - 8, by + uy * fl - 7, { size: 8.5, color: '#ffb340', mono: true });
-      // radius line + label
-      C.label(ctx, 'ω = ' + U.fmt(omega, 1) + ' rad/s', 70, 82, { size: 9, color: 'rgba(230,240,255,.46)', mono: true });
-      C.label(ctx, 'm = ' + U.fmt(state.m, 2) + ' kg', 70, 99, { size: 8.5, color: 'rgba(230,240,255,.3)', mono: true });
+      // solid laboratory base
+      poly([[250, 330], [620, 318], [710, 365], [330, 390]], '#263744', 'rgba(155,177,197,.4)', 1.2);
+      poly([[330, 390], [710, 365], [710, 410], [330, 440]], '#17242f', 'rgba(120,145,166,.32)', 1.2);
+      poly([[250, 330], [330, 390], [330, 440], [238, 372]], '#1e2c38', 'rgba(120,145,166,.28)', 1);
+      poly([[250, 330], [620, 318], [620, 330], [250, 342]], 'rgba(255,255,255,.06)');
+      C.label(ctx, '手摇向心力演示器', 252, 426, { size: 9, color: 'rgba(225,236,250,.55)' });
+      C.label(ctx, '金属灰 · 实验室常规结构', 252, 439, { size: 7, color: 'rgba(225,236,250,.28)' });
 
-      // formula card
-      K.panel(ctx, 640, 60, 210, 114, { fill: 'rgba(9,15,26,.58)' });
-      C.label(ctx, 'F = mω²r', 657, 91, { size: 18, color: '#eef4ff', weight: 600, mono: true });
-      C.label(ctx, '= mv²/r', 657, 116, { size: 11, color: 'rgba(230,240,255,.5)', mono: true });
-      C.label(ctx, '向心力指向圆心', 657, 147, { size: 8, color: 'rgba(255,179,64,.65)' });
+      // base feet and white drive pulleys
+      [[338, 447], [684, 417], [260, 382], [720, 378]].forEach((p) => {
+        ctx.beginPath(); ctx.ellipse(p[0], p[1], 17, 8, 0, 0, Math.PI * 2); ctx.fillStyle = '#101820'; ctx.fill();
+      });
+      [[356, 342, 70, 22], [596, 338, 66, 21]].forEach((p) => {
+        ctx.beginPath(); ctx.ellipse(p[0], p[1], p[2], p[3], 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#d7d3c8'; ctx.fill(); ctx.strokeStyle = 'rgba(55,64,72,.55)'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(p[0], p[1], p[2] - 13, p[3] - 5, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(90,100,110,.4)'; ctx.stroke();
+      });
+
+      // two spring-loaded vertical posts with scale sleeves
+      const post = (x) => {
+        C.fillRound(ctx, x - 11, 174, 22, 160, 7, '#28343f');
+        C.fillRound(ctx, x - 7, 177, 7, 154, 3, 'rgba(220,228,238,.18)');
+        C.fillRound(ctx, x - 17, 174, 34, 12, 4, '#4b5a68');
+        C.fillRound(ctx, x - 15, 186, 30, 8, 3, '#171f27');
+        for (let i = 0; i < 9; i++) {
+          const yy = 196 + i * 10;
+          C.line(ctx, x - 10, yy, x + 10, yy + 5, 'rgba(210,220,232,.32)', 1);
+        }
+        C.label(ctx, '测力套筒', x, 166, { size: 6.8, align: 'center', color: 'rgba(225,236,250,.48)' });
+      };
+      post(274); post(622);
+
+      // central vertical spindle
+      C.fillRound(ctx, cx - 8, 214, 16, 120, 6, '#5c6977');
+      C.fillRound(ctx, cx - 4, 214, 5, 118, 3, 'rgba(235,242,250,.4)');
+      C.fillRound(ctx, cx - 25, 208, 50, 9, 4, '#8795a5');
+
+      // rotating arms / graduated slide bars
+      [b1, b2].forEach((b, i) => {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(30,38,48,.95)'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.strokeStyle = i === 0 ? '#7c8b9a' : '#687787'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(b.x, b.y); ctx.stroke();
+        for (let k = 1; k < 6; k++) {
+          const t = k / 6, x = cx + (b.x - cx) * t, y = cy + (b.y - cy) * t;
+          C.line(ctx, x - 4, y - 3, x + 4, y + 3, 'rgba(230,238,248,.35)', .8);
+        }
+        // movable collar / counterweight sleeve
+        const collar = ballAt(phase + (i ? Math.PI : 0) - .28);
+        C.fillRound(ctx, collar.x - 10, collar.y - 10, 20, 20, 4, '#b5bec9');
+        C.fillRound(ctx, collar.x - 7, collar.y - 7, 14, 14, 3, '#303b47');
+        ctx.restore();
+      });
+
+      // elliptical orbit and swept phase
+      ctx.save();
+      ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(110,190,255,.35)'; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.ellipse(cx, cy, armPx, armPx * tilt, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      K.arc(ctx, cx, cy, armPx * .72, -Math.PI / 2, phase, 'rgba(100,210,255,.24)', 1.5);
+
+      // drive belt and hand crank
+      C.line(ctx, 356, 354, 596, 350, 'rgba(28,35,44,.85)', 5);
+      C.line(ctx, 356, 360, 596, 356, 'rgba(28,35,44,.85)', 5);
+      for (let i = 0; i < 7; i++) {
+        const t = (i / 7 + (view.t * .35) % 1) % 1;
+        const x = 356 + (596 - 356) * t;
+        C.dot(ctx, x, 354 + Math.sin(t * Math.PI) * 6, 2.2, 'rgba(190,210,230,.55)', 2);
+      }
+      const crankBase = { x: 714, y: 326 };
+      C.fillRound(ctx, crankBase.x - 18, 294, 36, 14, 5, '#4d5c6b');
+      C.fillRound(ctx, crankBase.x - 5, 306, 10, 48, 4, '#96a4b4');
+      const ca = phase * .8 + Math.PI;
+      const hx = crankBase.x + Math.cos(ca) * 34, hy = 320 + Math.sin(ca) * 34;
+      C.line(ctx, crankBase.x + 4, 320, hx, hy, '#aeb9c6', 7);
+      C.dot(ctx, hx, hy, 10, '#2a333e', 4);
+      C.label(ctx, '手摇手柄', crankBase.x + 42, 345, { size: 7, color: 'rgba(225,236,250,.5)' });
+      view._crank = { x: hx, y: hy };
+
+      // two movable metal balls
+      [b1, b2].forEach((b, i) => {
+        C.glowCircle(ctx, b.x, b.y, 22, i ? '#b8c4d2' : '#7fc4ff', .2);
+        metal(b.x, b.y, 12, i ? '#c7d0da' : '#d8e4ef');
+        C.label(ctx, i ? '配重球' : '钢球', b.x, b.y - 20, { size: 6.8, align: 'center', color: 'rgba(225,236,250,.58)' });
+      });
+
+      // measured radius and force on the test ball
+      C.line(ctx, cx, cy, b1.x, b1.y, 'rgba(100,210,255,.38)', 1, [3, 4]);
+      C.label(ctx, 'r = ' + U.fmt(state.r, 2) + ' m', (cx + b1.x) / 2 + 9, (cy + b1.y) / 2 + 4, { size: 8, color: 'rgba(100,210,255,.7)', mono: true });
+      const ux = (cx - b1.x) / Math.max(1, armPx), uy = (cy - b1.y) / Math.max(1, armPx * tilt);
+      const fl = Math.min(80, 22 + F * 4);
+      C.arrow(ctx, b1.x, b1.y, b1.x + ux * fl, b1.y + uy * fl, { color: '#ffb340', width: 2.2, head: 8, glow: 6 });
+      C.label(ctx, 'F向 = ' + U.fmt(F, 1) + ' N', b1.x + 20, b1.y - 28, { size: 7.5, color: '#ffb340', mono: true });
+      const tx = -Math.sin(phase), ty = Math.cos(phase);
+      C.arrow(ctx, b1.x, b1.y, b1.x + tx * Math.min(60, v * 16), b1.y + ty * Math.min(60, v * 16), { color: '#64d2ff', width: 1.8, head: 7 });
+      C.label(ctx, 'v', b1.x + tx * Math.min(60, v * 16) + 6, b1.y + ty * Math.min(60, v * 16), { size: 8, color: '#64d2ff', mono: true });
+
+      // headings / formula card
+      C.label(ctx, 'ω = ' + U.fmt(state.omega, 1) + ' rad/s', 72, 84, { size: 8.5, color: 'rgba(230,240,255,.45)', mono: true });
+      C.label(ctx, 'm = ' + U.fmt(state.m, 2) + ' kg', 72, 100, { size: 8, color: 'rgba(230,240,255,.3)', mono: true });
+      C.label(ctx, '拖动小球改变半径 · 摇动手柄启动', 274, 156, { size: 7.5, color: 'rgba(225,236,250,.4)' });
+      K.panel(ctx, 640, 48, 214, 108, { fill: 'rgba(9,15,26,.62)' });
+      C.label(ctx, 'F = mω²r', 654, 78, { size: 17, color: '#eef4ff', weight: 600, mono: true });
+      C.label(ctx, '= mv²/r', 654, 101, { size: 10, color: 'rgba(230,240,255,.48)', mono: true });
+      C.label(ctx, '向心力指向圆心', 654, 128, { size: 7.5, color: 'rgba(255,179,64,.65)' });
+      C.label(ctx, '双球反向旋转', 654, 143, { size: 7, color: 'rgba(225,236,250,.35)' });
+
       f.restore();
     },
     readouts(state) {

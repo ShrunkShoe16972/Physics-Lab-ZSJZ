@@ -725,6 +725,7 @@ body.focus-mode .sidebar-toggle svg { transform: rotate(180deg); }
   font-size: calc(15px * var(--fs)); line-height: 1.2;
 }
 .principle-formula .formula-tex .katex-display { margin: 0; }
+.formula-plain { display: inline-block; font-size: 22px; font-weight: 650; letter-spacing: .08em; color: var(--text); }
 .principle-formula > span {
   font: 650 calc(17px * var(--fs)) var(--mono);
   letter-spacing: -0.035em; color: var(--text);
@@ -1401,6 +1402,8 @@ body.we-video-bg .app-background { opacity: 0; }
 .stage-controls-head span { font-size: 8px; color: rgba(238,244,255,.36); }
 .stage-controls .controls { padding: 7px 0 3px; }
 .stage-controls .mm-short-btn { width: 100%; margin-top: 4px; font-size: 10px; }
+.stage-controls .measure-help-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 6px 0 2px; }
+.stage-controls .measure-help-row .btn { min-height: 27px; padding: 0 4px; font-size: 9px; }
 .stage-controls .control-row { padding: 7px 1px; }
 .stage-controls .control-top label { color: rgba(238,244,255,.68); }
 .stage-controls .control-value { color: #9ec1ff; }
