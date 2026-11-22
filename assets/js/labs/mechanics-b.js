@@ -210,7 +210,7 @@
       const fl = Math.min(80, 22 + F * 4);
       C.arrow(ctx, b1.x, b1.y, b1.x + ux * fl, b1.y + uy * fl, { color: '#ffb340', width: 2.2, head: 8, glow: 6 });
       C.label(ctx, 'F向 = ' + U.fmt(F, 1) + ' N', b1.x + 20, b1.y - 28, { size: 7.5, color: '#ffb340', mono: true });
-      const tx = -Math.sin(phase), ty = Math.cos(phase);
+      const tx = Math.sin(phase), ty = -Math.cos(phase) * tilt;
       C.arrow(ctx, b1.x, b1.y, b1.x + tx * Math.min(60, v * 16), b1.y + ty * Math.min(60, v * 16), { color: '#64d2ff', width: 1.8, head: 7 });
       C.label(ctx, 'v', b1.x + tx * Math.min(60, v * 16) + 6, b1.y + ty * Math.min(60, v * 16), { size: 8, color: '#64d2ff', mono: true });
 

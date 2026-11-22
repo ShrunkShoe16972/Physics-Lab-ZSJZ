@@ -1404,6 +1404,9 @@ body.we-video-bg .app-background { opacity: 0; }
 .stage-controls .mm-short-btn { width: 100%; margin-top: 4px; font-size: 10px; }
 .stage-controls .measure-help-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 6px 0 2px; }
 .stage-controls .measure-help-row .btn { min-height: 27px; padding: 0 4px; font-size: 9px; }
+.stage-controls .measure-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 4px; padding: 3px; border-radius: 7px; background: rgba(255,255,255,.06); }
+.stage-controls .measure-tabs button { height: 25px; border-radius: 5px; color: rgba(230,240,255,.55); font-size: 8.5px; }
+.stage-controls .measure-tabs button.active { background: rgba(255,255,255,.14); color: #fff; }
 .stage-controls .control-row { padding: 7px 1px; }
 .stage-controls .control-top label { color: rgba(238,244,255,.68); }
 .stage-controls .control-value { color: #9ec1ff; }

@@ -119,13 +119,200 @@
     aluminum: { name: '铝', rho: 2.8e-8, color: '#cfd8e6' },
     nichrome: { name: '镍铬合金', rho: 1.1e-6, color: '#a8b4c8' }
   };
+  const CAL = { x0: 180, scale: 4.3, beamY: 180, beamH: 42 };
+  const MIC = { thimbleX: 690, thimbleY: 235, ratchetX: 790 };
+
+  function localPoint(view, p) {
+    const f = view && view._frame;
+    if (!f || !f.s) return null;
+    return { x: (p.x - f.ox) / f.s, y: (p.y - f.oy) / f.s };
+  }
+
+  function drawCaliper(ctx, state, mat) {
+    const mm = U.clamp(state.L * 1000, 0, 150);
+    const jawX = CAL.x0 + mm * CAL.scale;
+    K.panel(ctx, 28, 34, 844, 394, { fill: 'rgba(9,15,26,.78)', stroke: 'rgba(160,190,225,.18)' });
+    C.label(ctx, '游标卡尺 · 0.02 mm', 52, 62, { size: 13, color: '#eef4ff', weight: 650 });
+    C.label(ctx, '主尺 + 游标读数', 52, 82, { size: 8, color: 'rgba(230,240,255,.38)' });
+    C.label(ctx, mm.toFixed(2) + ' mm', 846, 64, { size: 24, align: 'right', color: '#ffd166', mono: true, weight: 600 });
+    C.label(ctx, (state.L).toFixed(3) + ' m', 846, 84, { size: 9, align: 'right', color: 'rgba(230,240,255,.5)', mono: true });
+
+    // beam and main scale
+    C.fillRound(ctx, 142, CAL.beamY, 716, CAL.beamH, 5, '#c9d0d9');
+    C.fillRound(ctx, 142, CAL.beamY + 5, 716, 5, 2, 'rgba(255,255,255,.45)');
+    C.fillRound(ctx, 142, CAL.beamY + CAL.beamH - 5, 716, 5, 2, 'rgba(60,70,82,.35)');
+    for (let i = 0; i <= 150; i++) {
+      const x = CAL.x0 + i * CAL.scale;
+      const major = i % 10 === 0;
+      C.line(ctx, x, CAL.beamY + 4, x, CAL.beamY + 4 + (major ? 20 : i % 5 === 0 ? 12 : 7), 'rgba(40,50,62,.78)', major ? 1.2 : .7);
+      if (major) C.label(ctx, String(i), x, CAL.beamY - 8, { size: 7.5, align: 'center', color: 'rgba(230,240,255,.65)', mono: true });
+    }
+    C.label(ctx, '主尺', 152, CAL.beamY + 34, { size: 7, color: 'rgba(230,240,255,.38)' });
+    C.label(ctx, '0.02 mm', 184, CAL.beamY + 34, { size: 7, color: 'rgba(230,240,255,.4)', mono: true });
+
+    // fixed jaws (external + internal)
+    C.line(ctx, CAL.x0 - 22, 118, CAL.x0 - 22, 318, '#aeb8c4', 13);
+    C.line(ctx, CAL.x0 - 22, 118, CAL.x0 + 10, 118, '#aeb8c4', 13);
+    C.line(ctx, CAL.x0 - 22, 318, CAL.x0 + 10, 318, '#aeb8c4', 13);
+    C.line(ctx, CAL.x0 - 12, 160, CAL.x0 - 12, 220, 'rgba(30,38,50,.75)', 3);
+    C.line(ctx, CAL.x0 - 12, 278, CAL.x0 - 12, 318, 'rgba(30,38,50,.75)', 3);
+
+    // movable jaw + vernier
+    C.line(ctx, jawX, 118, jawX, 318, '#aeb8c4', 13);
+    C.line(ctx, jawX - 12, 160, jawX - 12, 220, 'rgba(30,38,50,.75)', 3);
+    C.line(ctx, jawX - 12, 278, jawX - 12, 318, 'rgba(30,38,50,.75)', 3);
+    C.fillRound(ctx, jawX - 6, CAL.beamY + CAL.beamH + 2, 220, 22, 3, 'rgba(222,229,238,.94)');
+    const vlen = 49 * CAL.scale;
+    for (let i = 0; i <= 50; i++) {
+      const x = jawX + i / 50 * vlen;
+      const major = i % 10 === 0;
+      C.line(ctx, x, CAL.beamY + CAL.beamH + 2, x, CAL.beamY + CAL.beamH + 2 + (major ? 15 : 7), 'rgba(30,40,52,.78)', major ? 1 : .55);
+      if (major) C.label(ctx, String(i / 10), x, CAL.beamY + CAL.beamH + 26, { size: 7, align: 'center', color: 'rgba(230,240,255,.55)', mono: true });
+    }
+    C.label(ctx, '游标', jawX + 82, CAL.beamY + CAL.beamH + 45, { size: 7, color: 'rgba(230,240,255,.38)' });
+
+    // measured wire
+    C.line(ctx, CAL.x0 - 22, 265, jawX, 265, mat.color || '#cfd8e6', 5);
+    C.line(ctx, CAL.x0 - 22, 265, jawX, 265, 'rgba(255,255,255,.35)', 1);
+    C.label(ctx, '待测金属丝', (CAL.x0 + jawX) / 2, 285, { size: 7, align: 'center', color: 'rgba(230,240,255,.45)' });
+
+    // thumb wheel + lock
+    C.dot(ctx, jawX, 362, 20, '#4a5664');
+    C.dot(ctx, jawX, 362, 14, '#8d9aa9');
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2;
+      C.line(ctx, jawX + Math.cos(a) * 9, 362 + Math.sin(a) * 9, jawX + Math.cos(a) * 14, 362 + Math.sin(a) * 14, 'rgba(30,38,48,.7)', .8);
+    }
+    C.dot(ctx, CAL.x0 - 54, 148, 11, '#5d6a78');
+    C.line(ctx, CAL.x0 - 54, 148, CAL.x0 - 42, 148, '#aab5c2', 3);
+    C.label(ctx, '锁紧螺钉', CAL.x0 - 68, 166, { size: 6.5, color: 'rgba(230,240,255,.36)' });
+    C.label(ctx, '拖动可动爪或滚轮 → 测量长度', 342, 420, { size: 7.5, color: 'rgba(150,210,255,.7)' });
+    C.label(ctx, '读数 = 主尺 + 游标对齐格数 × 0.02 mm', 342, 400, { size: 7.5, color: 'rgba(230,240,255,.4)' });
+  }
+
+  function drawMicrometer(ctx, state, mat) {
+    const d = U.clamp(state.d, 0.2, 1);
+    K.panel(ctx, 28, 34, 844, 394, { fill: 'rgba(9,15,26,.78)', stroke: 'rgba(160,190,225,.18)' });
+    C.label(ctx, '螺旋测微器 · 0.01 mm', 52, 62, { size: 13, color: '#eef4ff', weight: 650 });
+    C.label(ctx, '固定刻度 + 可动刻度', 52, 82, { size: 8, color: 'rgba(230,240,255,.38)' });
+    C.label(ctx, d.toFixed(3) + ' mm', 846, 64, { size: 24, align: 'right', color: '#ffd166', mono: true, weight: 600 });
+    C.label(ctx, '估读到 0.001 mm', 846, 84, { size: 8, align: 'right', color: 'rgba(230,240,255,.42)', mono: true });
+
+    // U-shaped frame
+    ctx.save();
+    ctx.strokeStyle = '#9ba5b1'; ctx.lineWidth = 34; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(470, 118); ctx.lineTo(335, 118);
+    ctx.bezierCurveTo(245, 118, 238, 178, 238, 235);
+    ctx.bezierCurveTo(238, 300, 252, 352, 335, 352);
+    ctx.lineTo(470, 352);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+    C.label(ctx, '框架', 250, 382, { size: 7.5, color: 'rgba(230,240,255,.4)' });
+    C.dot(ctx, 292, 166, 8, '#66717e'); C.dot(ctx, 292, 304, 8, '#66717e');
+    C.label(ctx, '0.01 mm', 300, 248, { size: 6.5, align: 'center', color: 'rgba(230,240,255,.32)' });
+
+    // anvil, spindle, lock
+    C.fillRound(ctx, 438, 222, 30, 28, 5, '#b7c0ca');
+    C.fillRound(ctx, 466, 228, 82, 16, 5, '#d7dde4');
+    C.label(ctx, '测砧', 430, 205, { size: 7, color: 'rgba(230,240,255,.45)' });
+    C.label(ctx, '测微螺杆', 500, 205, { size: 7, color: 'rgba(230,240,255,.45)' });
+    C.dot(ctx, 510, 185, 10, '#5a6674');
+    C.line(ctx, 510, 185, 536, 205, '#aeb8c4', 3);
+    C.label(ctx, '锁紧', 526, 178, { size: 6.5, color: 'rgba(230,240,255,.35)' });
+
+    // fixed sleeve
+    C.fillRound(ctx, 548, 214, 108, 42, 5, '#d8dee5');
+    for (let i = 0; i <= 15; i++) {
+      const x = 558 + i * 6.2;
+      C.line(ctx, x, 218, x, 218 + (i % 5 === 0 ? 17 : 9), 'rgba(35,44,55,.72)', i % 5 === 0 ? 1 : .6);
+      if (i % 5 === 0) C.label(ctx, String(i), x, 206, { size: 6, align: 'center', color: 'rgba(40,50,62,.8)', mono: true });
+    }
+    C.label(ctx, '固定刻度', 586, 246, { size: 6.5, align: 'center', color: 'rgba(40,50,62,.7)' });
+    C.line(ctx, 548, 235, 656, 235, 'rgba(40,50,62,.55)', 1);
+
+    // thimble with 50 divisions
+    const cx = MIC.thimbleX, cy = MIC.thimbleY;
+    ctx.beginPath(); ctx.arc(cx, cy, 54, 0, Math.PI * 2); ctx.fillStyle = '#b8c1cb'; ctx.fill();
+    ctx.strokeStyle = 'rgba(55,65,78,.6)'; ctx.lineWidth = 1.3; ctx.stroke();
+    const frac = (d % 1) / 1;
+    const baseA = -Math.PI / 2;
+    for (let i = 0; i < 50; i++) {
+      const a = baseA + i / 50 * Math.PI * 2;
+      const major = i % 5 === 0;
+      C.line(ctx, cx + Math.cos(a) * 42, cy + Math.sin(a) * 42, cx + Math.cos(a) * (major ? 51 : 47), cy + Math.sin(a) * (major ? 51 : 47), 'rgba(35,44,55,.72)', major ? 1.1 : .55);
+      if (major) C.label(ctx, String(i), cx + Math.cos(a) * 36, cy + Math.sin(a) * 36 + 2, { size: 5.5, align: 'center', color: 'rgba(40,50,62,.75)', mono: true });
+    }
+    const needleA = baseA + frac * Math.PI * 2;
+    C.line(ctx, cx, cy, cx + Math.cos(needleA) * 40, cy + Math.sin(needleA) * 40, '#c94135', 2);
+    C.dot(ctx, cx, cy, 8, '#4a5664');
+    C.label(ctx, '可动刻度', cx + 68, cy + 48, { size: 7, color: 'rgba(230,240,255,.45)' });
+
+    // ratchet / fine knob
+    const rx = MIC.ratchetX;
+    C.fillRound(ctx, rx - 16, cy - 30, 32, 60, 6, '#aeb8c4');
+    for (let i = 0; i < 8; i++) C.line(ctx, rx - 13, cy - 24 + i * 7, rx + 13, cy - 24 + i * 7, 'rgba(45,55,66,.55)', 1);
+    C.label(ctx, '微调旋钮 / 棘轮', rx, cy + 48, { size: 6.5, align: 'center', color: 'rgba(230,240,255,.45)' });
+
+    // measured wire in the gap
+    C.line(ctx, 420, 235, 470, 235, mat.color || '#cfd8e6', 5);
+    C.label(ctx, '金属丝', 446, 220, { size: 6.5, align: 'center', color: 'rgba(230,240,255,.45)' });
+    C.label(ctx, '拖动套筒/棘轮 → 测量直径', 350, 420, { size: 7.5, color: 'rgba(150,210,255,.7)' });
+    C.label(ctx, '读数 = 固定刻度 + 可动刻度 × 0.01 mm', 350, 400, { size: 7.5, color: 'rgba(230,240,255,.4)' });
+  }
 
   OL.registerLab({
     id: 'resistivity',
     live: false,
     playable: true,
-    hint: '用游标卡尺测 L，用螺旋测微器测 d，再由伏安法求 R 与 ρ',
-    extraControls: '<div class="measure-help-row"><button class="btn ghost small" data-action="measure-help" data-measure="caliper">游标卡尺用法</button><button class="btn ghost small" data-action="measure-help" data-measure="micrometer">螺旋测微器用法</button></div>',
+    pointer: true,
+    hint: '切换游标卡尺/螺旋测微器，拖动可动爪或棘轮完成测量',
+    extraControls: '<div class="measure-tabs"><button data-action="measure-view" data-view="circuit" class="active">电路</button><button data-action="measure-view" data-view="caliper">游标卡尺</button><button data-action="measure-view" data-view="micrometer">螺旋测微器</button></div><div class="measure-help-row"><button class="btn ghost small" data-action="measure-help" data-measure="caliper">游标卡尺用法</button><button class="btn ghost small" data-action="measure-help" data-measure="micrometer">螺旋测微器用法</button></div>',
+    init(state) {
+      state.measureView = 'circuit';
+      state._drag = null;
+    },
+    onPointerDown(p, state, view) {
+      if (!state.measureView || state.measureView === 'circuit') return false;
+      const q = localPoint(view, p);
+      if (!q) return false;
+      if (state.measureView === 'caliper') {
+        const mm = state.L * 1000;
+        const jawX = CAL.x0 + mm * CAL.scale;
+        if ((Math.abs(q.x - jawX) < 30 && q.y > 120 && q.y < 350) ||
+            (Math.hypot(q.x - jawX, q.y - 365) < 28)) {
+          state._drag = { type: 'caliper', startX: q.x, startMM: mm };
+          return true;
+        }
+      } else {
+        if (Math.hypot(q.x - MIC.thimbleX, q.y - MIC.thimbleY) < 62 ||
+            Math.abs(q.x - MIC.ratchetX) < 38) {
+          state._drag = { type: 'micrometer', startX: q.x, startD: state.d };
+          return true;
+        }
+      }
+      return false;
+    },
+    onPointerMove(p, state, view) {
+      if (!state._drag) return;
+      const q = localPoint(view, p);
+      if (!q) return;
+      if (state._drag.type === 'caliper') {
+        const mm = U.clamp((q.x - CAL.x0) / CAL.scale, 0, 150);
+        state.L = U.clamp(mm / 1000, 0.04, 0.12);
+        const slider = document.querySelector('#ctl-L');
+        if (slider) { slider.value = state.L.toFixed(3); slider.dispatchEvent(new Event('input', { bubbles: true })); }
+      } else if (state._drag.type === 'micrometer') {
+        const d = U.clamp(state._drag.startD + (q.x - state._drag.startX) * 0.0025, 0.2, 1);
+        state.d = d;
+        const slider = document.querySelector('#ctl-d');
+        if (slider) { slider.value = d.toFixed(2); slider.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+      view.dirty = true;
+    },
+    onPointerUp(p, state, view) { state._drag = null; },
     step(state, dt, view) { view.t += dt; },
     _calc(state) {
       const mat = MATERIALS[state.material] || MATERIALS.nichrome;
@@ -140,8 +327,11 @@
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 34 });
       const f = K.frame(ctx, w, h);
+      view._frame = { s: f.s, ox: f.ox, oy: f.oy, W: f.W, H: f.H };
       const q = this._calc(state);
-      const loop = [[96, 150], [300, 150], [510, 150], [510, 330], [96, 330]];
+      if (state.measureView === 'caliper') { drawCaliper(ctx, state, q.mat); f.restore(); return; }
+      if (state.measureView === 'micrometer') { drawMicrometer(ctx, state, q.mat); f.restore(); return; }
+      const loop = [[96, 150], [300, 150], [510, 150], [510, 330], [96, 330], [96, 150]];
       // wires
       ctx.save();
       ctx.strokeStyle = 'rgba(210,228,250,.42)'; ctx.lineWidth = 1.3;
@@ -187,45 +377,7 @@
       C.label(ctx, '电阻率 ρ', 578, 327, { size: 8, color: 'rgba(230,240,255,.32)' });
       C.label(ctx, U.sci(q.mat.rho, 2) + ' Ω·m', 578, 347, { size: 14, color: '#30d158', mono: true });
       C.label(ctx, '真实值 ' + q.mat.name + ' ' + U.sci(q.mat.rho, 1) + ' Ω·m', 700, 301, { size: 7, color: 'rgba(230,240,255,.3)' });
-
-      // vernier caliper (length measurement)
-      K.panel(ctx, 40, 368, 392, 84, { fill: 'rgba(9,15,26,.62)', stroke: 'rgba(150,180,220,.16)' });
-      C.label(ctx, '游标卡尺 · 测有效长度 L', 54, 386, { size: 7.5, color: 'rgba(230,240,255,.5)' });
-      C.fillRound(ctx, 58, 398, 330, 13, 3, 'rgba(198,207,219,.72)');
-      C.fillRound(ctx, 58, 411, 330, 5, 2, 'rgba(120,132,148,.8)');
-      for (let i = 0; i <= 33; i++) {
-        const tx = 62 + i * 9.7;
-        C.line(ctx, tx, 398, tx, 398 - (i % 5 === 0 ? 8 : 4), 'rgba(28,36,48,.75)', .8);
-      }
-      const jawX = 94 + (state.L / 1.2) * 250;
-      C.line(ctx, 90, 394, 90, 414, 'rgba(28,36,48,.95)', 5);
-      C.line(ctx, jawX, 394, jawX, 418, 'rgba(28,36,48,.95)', 5);
-      C.line(ctx, 90, 406, jawX, 406, q.mat.color, 4);
-      C.fillRound(ctx, jawX - 4, 416, 92, 9, 2, 'rgba(210,220,234,.88)');
-      C.label(ctx, '0', jawX, 432, { size: 6, align: 'center', color: 'rgba(230,240,255,.4)', mono: true });
-      C.label(ctx, '10', jawX + 78, 432, { size: 6, align: 'center', color: 'rgba(230,240,255,.4)', mono: true });
-      C.label(ctx, 'L = ' + U.fmt(state.L, 2) + ' m', 300, 390, { size: 8, align: 'right', color: '#ffd166', mono: true });
-      C.label(ctx, '读数 = 主尺 + 对齐格数 × 0.02 mm', 54, 442, { size: 6.5, color: 'rgba(230,240,255,.35)' });
-
-      // micrometer screw gauge (diameter measurement)
-      K.panel(ctx, 460, 368, 382, 84, { fill: 'rgba(9,15,26,.62)', stroke: 'rgba(150,180,220,.16)' });
-      C.label(ctx, '螺旋测微器 · 测直径 d', 474, 386, { size: 7.5, color: 'rgba(230,240,255,.5)' });
-      C.fillRound(ctx, 486, 408, 145, 13, 4, 'rgba(181,192,207,.7)');
-      C.fillRound(ctx, 486, 408, 12, 28, 4, 'rgba(130,143,160,.9)');
-      C.line(ctx, 510, 403, 510, 426, 'rgba(30,40,54,.9)', 5);
-      const sleeveX = 556 + (state.d / 1) * 95;
-      C.line(ctx, 510, 414, sleeveX, 414, q.mat.color, 6);
-      C.line(ctx, 510, 414, sleeveX, 414, 'rgba(255,255,255,.32)', 1);
-      C.dot(ctx, sleeveX, 414, 12, 'rgba(181,192,207,.9)');
-      C.dot(ctx, sleeveX, 414, 8, '#394455');
-      for (let i = 0; i < 8; i++) {
-        const a = i / 8 * Math.PI * 2;
-        C.line(ctx, sleeveX + Math.cos(a) * 8, 414 + Math.sin(a) * 8, sleeveX + Math.cos(a) * 12, 414 + Math.sin(a) * 12, 'rgba(30,40,54,.75)', .8);
-      }
-      C.line(ctx, 638, 404, 638, 426, 'rgba(210,220,234,.9)', 4);
-      C.fillRound(ctx, 642, 420, 90, 8, 2, 'rgba(120,132,148,.65)');
-      C.label(ctx, 'd = ' + U.fmt(state.d, 2) + ' mm', 824, 390, { size: 8, align: 'right', color: '#ffd166', mono: true });
-      C.label(ctx, '读数 = 固定刻度 + 可动刻度 × 0.01 mm', 474, 442, { size: 6.5, color: 'rgba(230,240,255,.35)' });
+      C.label(ctx, '在参数面板选择「游标卡尺」或「螺旋测微器」完成长度、直径测量', 70, 414, { size: 7.5, color: 'rgba(150,210,255,.55)' });
       f.restore();
     },
     readouts(state) {
@@ -288,7 +440,7 @@
       C.grid(ctx, w, h, { step: 34 });
       const f = K.frame(ctx, w, h);
       const q = this._calc(state);
-      const loop = [[96, 150], [280, 150], [330, 150], [500, 150], [500, 330], [96, 330]];
+      const loop = [[96, 150], [280, 150], [330, 150], [500, 150], [500, 330], [96, 330], [96, 150]];
       ctx.save(); ctx.strokeStyle = 'rgba(210,228,250,.4)'; ctx.lineWidth = 1.3;
       ctx.beginPath(); loop.forEach((p, i) => { if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }); ctx.stroke(); ctx.restore();
       flow(ctx, loop, view.t, 'rgba(255,196,110,.55)', 0.04 + q.I * 0.12, 12);

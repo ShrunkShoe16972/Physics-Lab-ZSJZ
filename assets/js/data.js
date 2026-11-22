@@ -256,7 +256,7 @@
       },
       controls: [
         { key: 'material', label: '金属材料', type: 'select', value: 'nichrome', options: [{ value: 'nichrome', label: '镍铬合金' }, { value: 'copper', label: '铜' }, { value: 'aluminum', label: '铝' }] },
-        { key: 'L', label: '金属丝长度 L（游标卡尺）', min: 0.4, max: 1.2, step: 0.02, value: 0.8, unit: 'm', decimals: 2 },
+        { key: 'L', label: '金属丝长度 L（游标卡尺）', min: 0.04, max: 0.12, step: 0.001, value: 0.08, unit: 'm', decimals: 3 },
         { key: 'd', label: '直径 d（螺旋测微器）', min: 0.2, max: 1, step: 0.01, value: 0.5, unit: 'mm', decimals: 2 },
         { key: 'U', label: '电压 U', min: 0.2, max: 3, step: 0.1, value: 1.5, unit: 'V', decimals: 1 }
       ]
