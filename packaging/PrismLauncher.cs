@@ -155,7 +155,10 @@ namespace PrismLab
                 {
                     string webData = Path.Combine(dataDir, "webview2");
                     Directory.CreateDirectory(webData);
-                    CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, webData, null);
+                    string bundledRuntime = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "runtime");
+                    string browserFolder = File.Exists(Path.Combine(bundledRuntime, "msedgewebview2.exe")) ? bundledRuntime : null;
+                    Log("WebView2 runtime: " + (browserFolder == null ? "system" : browserFolder));
+                    CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(browserFolder, webData, null);
                     await view.EnsureCoreWebView2Async(environment);
                     view.CoreWebView2.Settings.AreDevToolsEnabled = false;
                     view.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;

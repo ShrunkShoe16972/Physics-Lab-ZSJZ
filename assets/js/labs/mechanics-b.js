@@ -726,6 +726,11 @@
     hint: '改变摆长并记录周期 · 用 T²–L 求 g',
     init(state) { state._theta = U.deg(state.amp); state._omega = 0; },
     onControl(key, state, view) {
+      if (key === 'amp' && state.amp > 5 && !state._angleWarned) {
+        state._angleWarned = true;
+        if (OL.app && OL.app.toast) OL.app.toast('摆角超过 5°时实验误差变大，无法按小角度近似简谐运动处理', 'error');
+      }
+      if (key === 'amp' && state.amp <= 5) state._angleWarned = false;
       if (!view.playing && (key === 'L' || key === 'g' || key === 'amp')) {
         const T = 2 * Math.PI * Math.sqrt(state.L / state.g);
         state._theta = U.deg(state.amp) * Math.cos(2 * Math.PI * view.t / T);
@@ -770,6 +775,11 @@
       C.label(ctx, 'g = 4π²L / T²', 650, 198, { size: 8.5, color: 'rgba(230,240,255,.38)', mono: true });
       C.label(ctx, '= ' + U.fmt(4 * Math.PI * Math.PI * state.L / (T * T), 2) + ' m/s²', 650, 216, { size: 11, color: '#30d158', mono: true });
       C.label(ctx, '摆角较小时周期与振幅无关', 650, 243, { size: 7.5, color: 'rgba(230,240,255,.28)' });
+      if (state.amp > 5) {
+        K.panel(ctx, 54, 132, 500, 58, { r: 10, fill: 'rgba(120,30,30,.48)', stroke: 'rgba(255,120,110,.45)' });
+        C.label(ctx, '⚠ 摆角超过 5°：实验误差变大，不能按低角度近似简谐运动处理', 68, 156, { size: 9, color: '#ffb3aa' });
+        C.label(ctx, '请将初始摆角调到 5° 或更小后再测周期。', 68, 174, { size: 8, color: 'rgba(255,210,205,.72)' });
+      }
       // mini T2-L
       const pts = [];
       for (let i = 0; i <= 40; i++) {

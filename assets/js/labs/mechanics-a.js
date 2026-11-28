@@ -397,18 +397,25 @@
     hint: '控制变量 · 记录 a–F 或 a–1/m',
     step(state, dt, view) {
       view.t += dt;
-      if (view.t > 2.6) view.t = 0;
+      const a = Math.max(0, state.force - state.friction) / Math.max(0.01, state.mass);
+      if (a <= 0.001) return;
+      const travel = 650;
+      const tEnd = Math.sqrt(2 * travel / (a * 42));
+      view._tEnd = tEnd;
+      if (view.t >= tEnd) view.t = 0;
     },
     draw(ctx, w, h, state, view) {
       C.grid(ctx, w, h, { step: 34 });
       const f = K.frame(ctx, w, h);
       const net = Math.max(0, state.force - state.friction);
       const a = net / state.mass;
-      const dist = Math.min(520, 0.5 * a * view.t * view.t * 42);
+      const travel = 650;
+      const tEnd = a > 0.001 ? Math.sqrt(2 * travel / (a * 42)) : 1e9;
+      const dist = Math.min(travel, 0.5 * a * view.t * view.t * 42);
       const trackY = 350, x0 = 92;
       const cartX = x0 + dist;
       const loopFade = view.playing
-        ? Math.min(1, U.clamp(view.t / 0.18, 0, 1), U.clamp((2.6 - view.t) / 0.18, 0, 1))
+        ? Math.min(1, U.clamp(view.t / 0.18, 0, 1), U.clamp((tEnd - view.t) / 0.18, 0, 1))
         : 1;
 
       K.panel(ctx, 40, 44, 826, 180, { fill: 'rgba(9,15,26,.46)', stroke: 'rgba(255,255,255,.06)' });
@@ -461,7 +468,7 @@
       return [
         K.readout('加速度 a', U.fmt(a, 2), 'm/s²'),
         K.readout('合外力 F合', U.fmt(net, 2), 'N'),
-        K.readout('速度 v', U.fmt(a * Math.min(view.t, 2.6), 2), 'm/s'),
+        K.readout('速度 v', U.fmt(a * view.t, 2), 'm/s'),
         K.readout('质量 m', U.fmt(state.mass, 2), 'kg')
       ];
     },
@@ -647,4 +654,101 @@
       return '<b>结论：</b>平抛运动可分解为水平方向的匀速直线运动和竖直方向的自由落体运动。水平射程 x = v₀t = <b>' + U.fmt(state.v0 * tf, 2) + ' m</b>，飞行时间只由高度 h 决定。';
     }
   });
+  /* ------------------------------------------------------------
+     23 · 拔高实验：验证动量定理
+     ------------------------------------------------------------ */
+  OL.registerLab({
+    id: 'impulse-momentum',
+    live: false,
+    playable: true,
+    hint: '短时恒力作用 · 比较 I=FΔt 与 Δp=m(v−v₀)',
+    step(state, dt, view) {
+      view.t += dt;
+      if (view.t > 1.15) view.t = 0;
+    },
+    draw(ctx, w, h, state, view) {
+      C.grid(ctx, w, h, { step: 34 });
+      const f = K.frame(ctx, w, h);
+      const a = state.F / state.m;
+      const pulse = Math.min(view.t, state.dt);
+      const v = state.v0 + a * pulse;
+      const x = 150 + state.v0 * view.t * 90 + 0.5 * a * pulse * pulse * 90 + Math.max(0, view.t - state.dt) * v * 90;
+      const cartX = Math.min(760, x);
+      const I = state.F * state.dt;
+      const dp = state.m * (v - state.v0);
+      const active = view.t <= state.dt;
+
+      K.panel(ctx, 42, 44, 544, 150, { fill: 'rgba(9,15,26,.55)' });
+      C.label(ctx, '拔高实验 · 验证动量定理', 62, 70, { size: 13, color: '#eef4ff', weight: 650 });
+      C.label(ctx, '气垫导轨上短时恒力作用，I = FΔt，Δp = m(v−v₀)', 62, 92, { size: 8.5, color: 'rgba(230,240,255,.4)' });
+      C.label(ctx, 'I = ' + U.fmt(I, 3) + ' N·s', 62, 126, { size: 16, color: '#ffd166', mono: true });
+      C.label(ctx, 'Δp = ' + U.fmt(dp, 3) + ' kg·m/s', 62, 150, { size: 16, color: '#64d2ff', mono: true });
+      C.label(ctx, Math.abs(I - dp) < 1e-6 ? '✓ 冲量等于动量变化' : '记录后比较', 62, 174, { size: 8, color: 'rgba(125,255,158,.75)' });
+
+      // track + cart
+      C.floorLine(ctx, 48, 850, 330, 'rgba(160,190,240,.28)');
+      C.line(ctx, 58, 330, 830, 330, 'rgba(160,190,240,.22)', 5);
+      K.car(ctx, cartX, 312, 0.82);
+      C.arrow(ctx, cartX + 44, 286, cartX + 44 + Math.min(100, state.F * 8), 286, { color: '#ffb340', width: 2.4, head: 8, glow: 7 });
+      C.label(ctx, 'F = ' + U.fmt(state.F, 1) + ' N', cartX + 48 + Math.min(100, state.F * 8), 282, { size: 8, color: '#ffb340', mono: true });
+      if (active) C.glowCircle(ctx, cartX + 42, 316, 38, '#ffb340', .3);
+      C.label(ctx, 't = ' + U.fmt(view.t, 2) + ' s', 80, 224, { size: 9, color: 'rgba(230,240,255,.45)', mono: true });
+      C.label(ctx, 'v = ' + U.fmt(v, 2) + ' m/s', 80, 242, { size: 9, color: '#64d2ff', mono: true });
+
+      // pulse timeline
+      K.panel(ctx, 610, 56, 244, 132, { fill: 'rgba(9,15,26,.62)' });
+      C.label(ctx, 'F–t 冲量面积', 628, 80, { size: 8.5, color: 'rgba(230,240,255,.4)' });
+      C.line(ctx, 630, 158, 830, 158, 'rgba(210,225,245,.3)', 1);
+      C.fillRound(ctx, 632, 112, Math.max(4, 190 * Math.min(1, view.t / state.dt)), 44, 3, 'rgba(255,179,64,.28)');
+      C.line(ctx, 632, 112, 632 + 190 * Math.min(1, state.dt / 0.5), 112, '#ffb340', 2);
+      C.label(ctx, 'Δt = ' + U.fmt(state.dt, 2) + ' s', 632, 176, { size: 7.5, color: 'rgba(230,240,255,.4)', mono: true });
+
+      // side summary
+      K.panel(ctx, 610, 206, 244, 148, { fill: 'rgba(9,15,26,.44)' });
+      C.label(ctx, 'm = ' + U.fmt(state.m, 2) + ' kg', 628, 232, { size: 8.5, color: 'rgba(230,240,255,.4)', mono: true });
+      C.label(ctx, 'v₀ = ' + U.fmt(state.v0, 2) + ' m/s', 628, 252, { size: 8.5, color: 'rgba(230,240,255,.4)', mono: true });
+      C.label(ctx, 'v = ' + U.fmt(v, 2) + ' m/s', 628, 272, { size: 8.5, color: '#64d2ff', mono: true });
+      C.label(ctx, 'FΔt = m(v−v₀)', 628, 310, { size: 9, color: 'rgba(190,210,255,.55)', mono: true });
+      f.restore();
+    },
+    readouts(state) {
+      const v = state.v0 + state.F / state.m * state.dt;
+      return [
+        K.readout('冲量 I', U.fmt(state.F * state.dt, 3), 'N·s'),
+        K.readout('动量变化 Δp', U.fmt(state.m * (v - state.v0), 3), 'kg·m/s'),
+        K.readout('末速度 v', U.fmt(v, 2), 'm/s'),
+        K.readout('加速度 a', U.fmt(state.F / state.m, 2), 'm/s²')
+      ];
+    },
+    sample(state) {
+      const v = state.v0 + state.F / state.m * state.dt;
+      return { I: state.F * state.dt, dp: state.m * (v - state.v0), v };
+    },
+    columns: [
+      { key: 'I', label: 'I', unit: 'N·s', decimals: 3 },
+      { key: 'dp', label: 'Δp', unit: 'kg·m/s', decimals: 3 },
+      { key: 'v', label: 'v', unit: 'm/s', decimals: 2 }
+    ],
+    plot(state, view) {
+      const pts = [];
+      for (let i = 0; i <= 60; i++) {
+        const I = i / 60 * 6;
+        pts.push({ x: I, y: I });
+      }
+      return {
+        xLabel: '冲量 I', yLabel: '动量变化 Δp', xUnit: 'N·s', yUnit: 'kg·m/s',
+        xMin: 0, xMax: 6, yMin: 0, yMax: 6,
+        series: [
+          K.series(pts, '理论 Δp = I', '#5ca8ff', { width: 2 }),
+          K.scatter(view.records, 'I', 'dp', '测量点', '#64d2ff', { pointSize: 4 })
+        ]
+      };
+    },
+    conclusion(state) {
+      const v = state.v0 + state.F / state.m * state.dt;
+      const I = state.F * state.dt, dp = state.m * (v - state.v0);
+      return '<b>结论：</b>冲量 I = FΔt = <b>' + U.fmt(I, 3) + ' N·s</b>，动量变化 Δp = m(v−v₀) = <b>' + U.fmt(dp, 3) + ' kg·m/s</b>。两者相等，验证了动量定理。';
+    }
+  });
+
 })();

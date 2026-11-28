@@ -378,6 +378,35 @@
   function modulePart(id) { return moduleState.parts.find((p) => p.id === id); }
   function moduleCenter(p) { return { x: p.x + 40, y: p.y + 34 }; }
 
+  function moduleCircuitStatus() {
+    if (!moduleState) return { complete: false, reason: 'no-state' };
+    const conducting = new Set(['battery', 'resistor', 'lamp', 'switch', 'ammeter']);
+    const parts = moduleState.parts.filter((p) => conducting.has(p.type) && !(p.type === 'switch' && p.closed === false));
+    const byId = {};
+    parts.forEach((p) => { byId[p.id] = p; });
+    const links = moduleState.links.filter((l) => byId[l.from] && byId[l.to] && l.from !== l.to);
+    const hasBattery = parts.some((p) => p.type === 'battery');
+    const hasLamp = parts.some((p) => p.type === 'lamp');
+    if (!hasBattery || !hasLamp) return { complete: false, reason: 'missing' };
+    const adj = {};
+    parts.forEach((p) => { adj[p.id] = []; });
+    links.forEach((l) => { adj[l.from].push(l.to); adj[l.to].push(l.from); });
+    const start = parts.find((p) => p.type === 'battery').id;
+    const seen = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const id = queue.shift();
+      adj[id].forEach((n) => { if (!seen.has(n)) { seen.add(n); queue.push(n); } });
+    }
+    const lampPart = parts.find((p) => p.type === 'lamp');
+    if (!seen.has(lampPart.id)) return { complete: false, reason: 'lamp-not-connected' };
+    const component = parts.filter((p) => seen.has(p.id));
+    const componentEdges = links.filter((l) => seen.has(l.from) && seen.has(l.to)).length;
+    if (adj[start].length < 2 || adj[lampPart.id].length < 2) return { complete: false, reason: 'open' };
+    if (componentEdges < component.length) return { complete: false, reason: 'open' };
+    return { complete: true, reason: 'ok', battery: start, lamp: lampPart.id };
+  }
+
   function drawModulePart(ctx, p, t, powered) {
     const meta = MODULE_PARTS[p.type] || { label: '模块', color: '#64a8ff' };
     const x = p.x, y = p.y;
@@ -454,7 +483,8 @@
     bg.addColorStop(0, '#0d1728'); bg.addColorStop(1, '#080d16');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
     C.grid(ctx, w, h, { step: 28, vignette: false });
-    const powered = moduleState.parts.some((p) => p.type === 'battery') && moduleState.parts.some((p) => p.type === 'lamp') && moduleState.links.length > 0;
+    const circuit = moduleCircuitStatus();
+    const powered = circuit.complete && moduleState.running;
     // flow / wires
     moduleState.links.forEach((l) => {
       const a = modulePart(l.from), b = modulePart(l.to);
@@ -467,7 +497,8 @@
       C.label(ctx, '拖动左侧器具到这里', w / 2, h / 2 - 8, { size: 14, color: 'rgba(230,240,255,.38)', align: 'center' });
       C.label(ctx, '小车 · 斜面 · 电源 · 透镜 · 注射器', w / 2, h / 2 + 14, { size: 9, color: 'rgba(230,240,255,.24)', align: 'center' });
     }
-    const status = moduleState.running ? '运行中 · 拖动器具仍可编辑' : '编辑模式 · 连线后点击运行';
+    const status = moduleState.running && circuit.complete ? '运行中 · 回路闭合，灯泡发光' : (!circuit.complete && moduleState.parts.length ? '回路未闭合 · 请用“连线”补全电池—灯泡回路' : '编辑模式 · 连线后点击运行');
+    if (circuit.complete) C.label(ctx, '● 回路闭合', w - 16, h - 15, { size: 8, color: 'rgba(125,255,158,.75)', align: 'right', mono: true });
     C.label(ctx, status, 16, h - 15, { size: 8, color: moduleState.running ? 'rgba(125,255,158,.65)' : 'rgba(230,240,255,.32)', mono: true });
   }
 
@@ -588,7 +619,19 @@
     }));
     root.querySelectorAll('[data-mod-action]').forEach((b) => b.addEventListener('click', () => {
       const a = b.dataset.modAction;
-      if (a === 'run') { moduleState.running = true; if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '运行中：器具会在画布上演示'; startModuleLoop(); }
+      if (a === 'run') {
+        const circuit = moduleCircuitStatus();
+        if (!circuit.complete) {
+          if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '回路未闭合：请用“连线”把电源、开关、电阻和灯泡连成完整回路';
+          if (OL.app && OL.app.toast) OL.app.toast('回路未闭合，无法运行。请用连线连接电池、灯泡等元件。', 'error');
+          moduleState.running = false;
+          drawModuleScene();
+          return;
+        }
+        moduleState.running = true;
+        if (root.querySelector('#moduleHint')) root.querySelector('#moduleHint').textContent = '运行中：回路闭合，灯泡发光';
+        startModuleLoop();
+      }
       if (a === 'stop') { moduleState.running = false; cancelAnimationFrame(moduleRAF); drawModuleScene(); }
       if (a === 'clear') { moduleState.parts = []; moduleState.links = []; moduleState.selected = null; moduleState.running = false; moduleWireFrom = null; cancelAnimationFrame(moduleRAF); drawModuleScene(); renderModuleInspector(); }
       if (a === 'delete') { if (moduleState.selected) { moduleState.parts = moduleState.parts.filter((p) => p.id !== moduleState.selected); moduleState.links = moduleState.links.filter((l) => l.from !== moduleState.selected && l.to !== moduleState.selected); moduleState.selected = null; drawModuleScene(); renderModuleInspector(); } }

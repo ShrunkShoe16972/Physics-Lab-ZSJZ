@@ -21,6 +21,10 @@
     molecular: {
       name: '热学与分子', en: 'Molecular', color: '#30d158', soft: 'rgba(48,209,88,.12)',
       desc: '微观世界与分子尺度', icon: 'molecular'
+    },
+    advanced: {
+      name: '拔高实验', en: 'Advanced', color: '#ff453a', soft: 'rgba(255,69,58,.12)',
+      desc: '面向竞赛与探究的拓展实验', icon: 'spark'
     }
   };
 
@@ -110,6 +114,7 @@
     },
     {
       n: 3, id: 'force-parallelogram', title: '验证力的平行四边形定则',
+      unavailable: true, unavailableText: '该实验已从实验库移除。',
       short: '用两个分力与一个合力，验证矢量合成的几何规律。',
       category: 'mechanics', accent: '#0a84ff', icon: 'vectors',
       difficulty: '基础', time: '8 分钟', tags: ['矢量合成', '合力'],
@@ -472,6 +477,22 @@
         { key: 'T', label: '气体温度 T', min: 250, max: 350, step: 1, value: 300, unit: 'K', decimals: 0 },
         { key: 'n', label: '气体物质的量 n', min: 1, max: 5, step: 0.5, value: 3, unit: 'mmol', decimals: 1 },
         { key: 'chartMode', label: '图像', type: 'segmented', options: [{ label: 'p–V', value: 'pv' }, { label: 'p–1/V', value: 'inv' }], value: 'pv' }
+      ]
+    },
+    {
+      n: 23, id: 'impulse-momentum', title: '验证动量定理',
+      short: '用恒力作用一段短时间，比较冲量 I=FΔt 与动量变化 Δp。',
+      category: 'advanced', accent: '#ff453a', icon: 'momentum', book: 'b1',
+      difficulty: '拔高', time: '12 分钟', tags: ['冲量', '动量定理', 'F–t 图像'],
+      description: '小车在水平气垫导轨上受到短时恒力作用。测量作用力 F、作用时间 Δt 和小车速度变化，比较冲量 I 与动量变化 Δp，验证动量定理。',
+      formula: 'I = FΔt = Δp = mv − mv₀', formulaNote: '冲量是力对时间的累积；F–t 图线与时间轴围成的面积等于冲量。',
+      principle: '合外力的冲量等于物体动量的变化量。选取小车为研究对象，初速度为 v₀，末速度为 v，则 FΔt = m(v−v₀)。',
+      steps: ['调平气垫导轨，安装力传感器与光电门', '用短时恒力拉小车，记录 F、Δt 与初末速度', '计算冲量 I=FΔt 与动量变化 Δp=m(v−v₀)', '改变力或作用时间，重复测量并比较 I 与 Δp'],
+      controls: [
+        { key: 'F', label: '作用力 F', min: 0.5, max: 12, step: 0.1, value: 4, unit: 'N', decimals: 1 },
+        { key: 'dt', label: '作用时间 Δt', min: 0.05, max: 0.5, step: 0.01, value: 0.2, unit: 's', decimals: 2 },
+        { key: 'm', label: '小车质量 m', min: 0.2, max: 2, step: 0.05, value: 0.8, unit: 'kg', decimals: 2 },
+        { key: 'v0', label: '初速度 v₀', min: 0, max: 2, step: 0.05, value: 0, unit: 'm/s', decimals: 2 }
       ]
     }
   ];

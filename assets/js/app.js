@@ -22,7 +22,7 @@
   };
 
   const state = app.state = {
-    route: 'home', filter: 'all', book: 'all', lab: null, currentLab: null,
+    route: 'home', filter: 'all', book: 'all', stage: 'high', lab: null, currentLab: null,
     theme: U.load().theme || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
     uiStyle: U.load().uiStyle === 'mac' ? 'mac' : 'win',
     fontScale: Number(U.load().fontScale) || 1,
@@ -985,7 +985,7 @@
   }
 
   function filterChips() {
-    const items = [['all', '全部'], ['mechanics', '力学'], ['electricity', '电磁学'], ['optics', '光学'], ['molecular', '热学与分子']];
+    const items = [['all', '全部'], ['mechanics', '力学'], ['electricity', '电磁学'], ['optics', '光学'], ['molecular', '热学与分子'], ['advanced', '拔高实验']];
     return items.map(([k, label]) => '<button class="filter-chip' + (state.filter === k ? ' active' : '') + '" data-filter="' + k + '">' + label + '</button>').join('');
   }
 
@@ -998,7 +998,9 @@
   }
 
   function filteredExperiments() {
+    if (state.stage === 'junior') return [];
     let list = state.filter === 'all' ? OL.experiments.slice() : OL.byCategory(state.filter);
+    list = list.filter((e) => (e.stage || 'high') === 'high');
     if (state.book !== 'all') list = list.filter((e) => e.book === state.book);
     return list;
   }
@@ -1079,13 +1081,23 @@
     const s = U.load();
     const done = s.completed.filter((id) => isAvailableExp(id)).length;
     const pct = Math.round(done / OL.experiments.length * 100);
+    const junior = state.stage === 'junior';
     viewEl.innerHTML = '<div class="view-inner">' +
-      '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">' + OL.experiments.length + ' 个实验，<br>一条完整的物理脉络。</h1><p class="page-sub">力学、电磁学、光学与分子热学。每个实验都可以拖动变量、记录数据、生成图像。</p></div>' +
-      '<div class="library-progress"><span class="ring" style="--p:' + pct + '%"></span><span><b style="color:var(--text)">' + done + '/' + OL.experiments.length + '</b> 已完成</span></div></div>' +
+      '<div class="page-head"><div><span class="eyebrow"><span class="dot"></span>EXPERIMENT LIBRARY</span><h1 class="page-title">' + (junior ? '初中实验，<br>正在准备。' : OL.experiments.length + ' 个实验，<br>一条完整的物理脉络。') + '</h1><p class="page-sub">' + (junior ? '初中实验内容暂未填充，后续会陆续加入。' : '力学、电磁学、光学、热学与分子。每个实验都可以拖动变量、记录数据、生成图像。') + '</p></div>' +
+      '<div class="library-progress"><span class="ring" style="--p:' + (junior ? 0 : pct) + '%"></span><span><b style="color:var(--text)">' + (junior ? '0/0' : done + '/' + OL.experiments.length) + '</b> 已完成</span></div></div>' +
+      '<div class="stage-tabs"><button data-stage="high" class="' + (!junior ? 'active' : '') + '">高中类</button><button data-stage="junior" class="' + (junior ? 'active' : '') + '">初中类</button></div>' +
+      (junior ? '<section class="junior-empty card"><div class="junior-empty-icon">' + ui('info') + '</div><h2>初中实验内容暂未填充</h2><p>当前版本先完成高中实验库；初中实验将在后续版本加入。</p><button class="btn ghost" data-stage="high">返回高中类</button></section>' :
       '<div class="filter-row" id="libFilters"><span class="filter-label">板块</span>' + filterChips() + '<span class="filter-spacer"></span><span class="filter-count" id="filterCount">' + filteredExperiments().length + ' 个实验</span></div>' +
       '<div class="filter-row book-filter-row" id="libBookFilters"><span class="filter-label">教材</span>' + bookChips() + '</div>' +
-      '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>' +
+      '<div class="experiment-grid" id="expGrid">' + filteredExperiments().map(expCard).join('') + '</div>') +
       '</div>';
+  }
+
+  function setLibraryStage(stage) {
+    state.stage = stage === 'junior' ? 'junior' : 'high';
+    state.filter = 'all';
+    state.book = 'all';
+    renderLibrary();
   }
 
   function applyFilter(cat) {
@@ -1340,18 +1352,19 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。21 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.8.3</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。21 个高中物理实验、拔高实验、模块化工坊与自带运行时便携包。</p></div><span class="about-version">v0.9.0</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.8.3</strong><span>2026-11-28</span></div>' +
-      '<p>按技术受限说明移除“探究向心力大小的影响因素”实验；实验库、搜索和统计不再包含该实验，旧链接显示不可用说明。</p>' +
+      '<div class="about-version-row"><strong>0.9.0</strong><span>2026-11-28</span></div>' +
+      '<p>实验库分为高中类/初中类，新增拔高实验；修复小车提前重置、单摆大角度提示、滑动变阻器符号与模块电路；便携包自带 WebView2 固定运行时。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.8.3</b><span>2026-11-28</span><p>移除“探究向心力大小的影响因素”实验及其卡片、搜索项和统计；旧实验链接显示“受技术受限，本实验无法做到”。</p></div>' +
+      '<div class="about-changelog"><div><b>0.9.0</b><span>2026-11-28</span><p>删除平行四边形定则实验；修复加速度实验小车提前重置；单摆摆角超过 5°显示误差提示；重绘滑动变阻器；模块电路按闭合回路运行；实验库分高中/初中并新增“验证动量定理”拔高实验；便携包自带 WebView2 固定运行时。</p></div>' +
+      '<div><b>0.8.3</b><span>2026-11-28</span><p>移除“探究向心力大小的影响因素”实验及其卡片、搜索项和统计；旧实验链接显示“受技术受限，本实验无法做到”。</p></div>' +
       '<div><b>0.8.2</b><span>2026-11-28</span><p>向心力演示器改为左右各一根旋转轴、各一个测力套筒、各放一个球；握把经条带同时驱动两轴；转速越高，套筒红色指示越向下；速度箭头保持轨迹切线。</p></div>' +
       '<div><b>0.8.1</b><span>2026-11-22</span><p>向心力装置按 BV1Rr421x7ge 操作逻辑修正，速度箭头改为真实轨迹切线；小灯泡分压电路补上左侧回路；游标卡尺与螺旋测微器改为大幅真实仪器，支持拖动游标/测微套筒测量并同步 L、d。</p></div>' +
       '<div><b>0.8.0</b><span>2026-11-22</span><p>胡克定律改为二力平衡表述；平行四边形实验原理改为等效替代法并移除公式；电阻率实验加入游标卡尺、螺旋测微器及使用方法弹窗；向心力实验按手摇演示器重绘为可交互 3D 风格装置。</p></div>' +
@@ -1365,12 +1378,12 @@
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.8.3-Links.pptx" download>下载 22 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.9.0-Links.pptx" download>下载 22 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
       '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
       '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>代码签名证书</h2><span class="pill green">CODE SIGNING</span></div>' +
-      '<p>0.8.3 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
+      '<p>0.9.0 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。便携 ZIP 自带 WebView2 固定运行时，无需目标电脑预装 WebView2。</p>' +
       '<p class="about-muted">证书公钥位于 <code>packaging/certs/PrismLab-CodeSigning.cer</code>。它不是公共 CA 证书，Windows 默认仍可能提示“未知发布者”；可将公钥安装到“受信任的发布者”后消除提示。</p></section>' +
       '</div></div>';
   }
@@ -1383,7 +1396,7 @@
       '<span class="eyebrow">EXPERIMENT UNAVAILABLE</span>' +
       '<h1>' + U.esc(exp.title) + '</h1>' +
       '<div class="unavailable-mark">' + ui('info') + '</div>' +
-      '<p class="unavailable-message">受技术受限，本实验无法做到。</p>' +
+      '<p class="unavailable-message">' + U.esc(exp.unavailableText || '受技术受限，本实验无法做到。') + '</p>' +
       '<p class="unavailable-note">该实验已从实验库中移除，不会提供交互、数据采集或图像功能。请选择其他实验继续学习。</p>' +
       '<button class="btn primary-hero" data-route="library">返回实验库</button>' +
       '</section></div>';
@@ -1900,6 +1913,8 @@
       else navigate('library');
       return;
     }
+    const stage = e.target.closest('[data-stage]');
+    if (stage) { setLibraryStage(stage.dataset.stage); return; }
     const filter = e.target.closest('[data-filter]');
     if (filter) { applyFilter(filter.dataset.filter); return; }
     const book = e.target.closest('[data-book]');

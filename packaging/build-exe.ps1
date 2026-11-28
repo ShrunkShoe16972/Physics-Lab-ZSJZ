@@ -77,9 +77,9 @@ $readme = @"
 独立桌面版 · Windows 10 / 11 x64
 
 使用方法
-1. 双击 PrismLab-$version.exe
-2. 程序启动独立 WinForms 窗口，内置 WebView2，不再调用 Chrome / Edge 浏览器
-3. 本机需要 Microsoft Edge WebView2 Runtime（Windows 11 通常自带）
+1. 推荐解压 PrismLab-$version-portable.zip，双击 PrismLab-$version.exe
+2. 便携 ZIP 内置 runtime/ WebView2 固定运行时，目标电脑无需安装 WebView2
+3. 若只复制 exe，程序会回退使用系统 WebView2，可能因未安装而无法启动
 4. 关闭窗口即退出；系统托盘仍可重新打开或退出
 
 说明
@@ -97,6 +97,10 @@ SHA-256：$hash
 "@
 Set-Content -LiteralPath (Join-Path $dist '使用说明.txt') -Value $readme -Encoding UTF8
 $archiveItems = @($out, (Join-Path $dist '使用说明.txt'))
+$bundledRuntime = Join-Path $dist 'runtime'
+if (Test-Path (Join-Path $bundledRuntime 'msedgewebview2.exe')) {
+  $archiveItems += $bundledRuntime
+}
 $certFile = Join-Path $PSScriptRoot 'certs\PrismLab-CodeSigning.cer'
 if (Test-Path $certFile) {
   Copy-Item $certFile (Join-Path $dist 'PrismLab-CodeSigning.cer') -Force

@@ -660,6 +660,14 @@ body.focus-mode .sidebar-toggle svg { transform: rotate(180deg); }
 .unavailable-mark svg { width: 25px; height: 25px; }
 .unavailable-message { margin: 0; font-size: 20px; font-weight: 650; color: var(--text); }
 .unavailable-note { margin: 12px auto 24px; max-width: 560px; color: var(--text-3); font-size: 12px; line-height: 1.7; }
+.stage-tabs { display: inline-flex; gap: 4px; margin: 20px 0 8px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-subtle); }
+.stage-tabs button { height: 34px; padding: 0 20px; border-radius: 8px; color: var(--text-3); font-size: 12px; font-weight: 600; }
+.stage-tabs button.active { color: var(--text); background: var(--panel-solid); box-shadow: var(--shadow-sm); }
+.junior-empty { margin: 30px auto 0; max-width: 760px; padding: 52px 30px; text-align: center; }
+.junior-empty-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); }
+.junior-empty-icon svg { width: 24px; height: 24px; }
+.junior-empty h2 { margin: 0 0 8px; font-size: 24px; }
+.junior-empty p { margin: 0 0 20px; color: var(--text-3); font-size: 12px; }
 
 .library-progress { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); font-size: 11px; color: var(--text-2); }
 .library-progress .ring { width: 26px; height: 26px; border-radius: 50%; background: conic-gradient(var(--blue) var(--p), rgba(0,0,0,.08) 0); position: relative; }

@@ -111,6 +111,32 @@
     ctx.lineTo(x2, y); ctx.stroke(); ctx.restore();
   }
 
+  function slidingRheostat(ctx, x, y, w, label, ratio) {
+    ratio = U.clamp(ratio == null ? 0.55 : ratio, 0, 1);
+    ctx.save();
+    // four terminals and ceramic former
+    C.line(ctx, x - 18, y, x, y, 'rgba(210,228,250,.55)', 1.2);
+    C.line(ctx, x + w, y, x + w + 18, y, 'rgba(210,228,250,.55)', 1.2);
+    C.fillRound(ctx, x, y - 9, w, 18, 4, '#d8d2c4');
+    C.fillRound(ctx, x + 3, y - 6, w - 6, 7, 2, '#b7ad99');
+    for (let i = 0; i < Math.floor(w / 7); i++) {
+      const xx = x + 6 + i * 7;
+      C.line(ctx, xx, y - 8, xx + 5, y + 7, 'rgba(82,76,65,.55)', .7);
+    }
+    // top guide rod + sliding contact
+    C.line(ctx, x - 4, y - 25, x + w + 4, y - 25, '#aeb9c5', 3);
+    const sx = x + ratio * w;
+    C.fillRound(ctx, sx - 13, y - 31, 26, 12, 3, '#6f7d8c');
+    ctx.beginPath(); ctx.moveTo(sx, y - 19); ctx.lineTo(sx - 7, y - 9); ctx.lineTo(sx + 7, y - 9); ctx.closePath();
+    ctx.fillStyle = '#f0c14b'; ctx.fill(); ctx.strokeStyle = 'rgba(35,44,55,.7)'; ctx.lineWidth = 1; ctx.stroke();
+    // wires from slider and one end
+    C.line(ctx, sx, y - 31, sx, y - 44, 'rgba(210,228,250,.6)', 1.2);
+    C.line(ctx, x, y - 9, x, y + 14, 'rgba(210,228,250,.45)', 1.1);
+    C.line(ctx, x + w, y - 9, x + w, y + 14, 'rgba(210,228,250,.45)', 1.1);
+    C.label(ctx, label || '滑动变阻器', x + w / 2, y + 27, { size: 7, align: 'center', color: 'rgba(230,240,255,.38)' });
+    ctx.restore();
+  }
+
   /* ------------------------------------------------------------
      11 · 测量金属丝的电阻率
      ------------------------------------------------------------ */
@@ -459,11 +485,8 @@
       K.lamp(ctx, lx, ly, 15, q.bright);
       C.label(ctx, '小灯泡', lx, 194, { size: 8, align: 'center', color: 'rgba(230,240,255,.35)' });
 
-      // rheostat
-      zigzag(ctx, 300, 330, 390, 'rgba(220,235,255,.55)');
-      C.line(ctx, 390, 330, 390, 300, 'rgba(220,235,255,.35)', 1);
-      C.arrow(ctx, 390, 300, 410, 300, { color: 'rgba(220,235,255,.45)', width: 1, head: 4 });
-      C.label(ctx, '滑动变阻器（分压）', 318, 352, { size: 7, align: 'center', color: 'rgba(230,240,255,.3)' });
+      // sliding rheostat (four-terminal physical symbol)
+      slidingRheostat(ctx, 300, 330, 100, '滑动变阻器（分压）', 0.18 + state.U / 12 * 0.64);
 
       // voltmeter branch
       C.line(ctx, 378, 150, 378, 78, 'rgba(210,228,250,.35)', 1.1);
@@ -558,11 +581,8 @@
       C.label(ctx, 'E = ' + U.fmt(state.E, 1) + ' V', 74, 208, { size: 8, color: 'rgba(230,240,255,.38)', mono: true });
 
       meter(ctx, 272, 150, 21, 'A', U.fmt(q.I, 3) + ' A', '#64d2ff');
-      // rheostat
-      zigzag(ctx, 300, 330, 400, 'rgba(220,235,255,.55)');
-      C.line(ctx, 400, 330, 400, 298, 'rgba(220,235,255,.35)', 1);
-      C.arrow(ctx, 400, 298, 424, 298, { color: 'rgba(220,235,255,.45)', width: 1, head: 4 });
-      C.label(ctx, 'R = ' + U.fmt(state.R, 1) + ' Ω', 352, 352, { size: 7.5, align: 'center', color: 'rgba(230,240,255,.35)', mono: true });
+      // sliding rheostat (four-terminal physical symbol)
+      slidingRheostat(ctx, 300, 330, 100, 'R = ' + U.fmt(state.R, 1) + ' Ω', 0.18 + (state.R - 2) / 18 * 0.64);
       // voltmeter across battery terminals
       C.line(ctx, 100, 150, 76, 150, 'rgba(210,228,250,.35)', 1);
       C.line(ctx, 76, 150, 76, 68, 'rgba(210,228,250,.35)', 1);
