@@ -2,11 +2,11 @@
 
 [中文](#zh) · [English](#en)
 
-> **v0.8.2** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
+> **v0.8.3** · 21 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
 >
 > 22 high-school physics experiments · rAF scroll sync · Wallpaper Engine live background · faster startup
 
-[![Version](https://img.shields.io/badge/version-0.8.2-0a84ff)](#)
+[![Version](https://img.shields.io/badge/version-0.8.3-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
@@ -22,11 +22,12 @@
 
 ## 简介
 
-Prism（中山市中山纪念中学物理实验室）是一个面向高中物理的交互式实验平台。它把 **22 个高中物理基本实验** 做成可拖动、可采集数据、可生成图像的模拟器，并使用 Apple 风格的界面、深色实验舞台、实时读数与动画来呈现抽象的物理过程。
+Prism（中山市中山纪念中学物理实验室）是一个面向高中物理的交互式实验平台。它把 **21 个高中物理基本实验** 做成可拖动、可采集数据、可生成图像的模拟器，并使用 Apple 风格的界面、深色实验舞台、实时读数与动画来呈现抽象的物理过程。
 
 项目完全由 **HTML + CSS + JavaScript** 编写，不依赖后端、不需要安装 Node.js 或编译工具，双击即可运行。无需动态链接库，也不依赖外部 CDN。
 
 - 产品需求文档：[PRD.md](PRD.md)
+- 0.8.3 新增：移除“探究向心力大小的影响因素”实验，实验库、搜索、统计不再包含；旧链接显示“受技术受限，本实验无法做到”
 - 0.8.2 新增：向心力演示器改为左右双旋转轴、双测力套筒、双侧单球，握把经条带驱动双轴，转速越高套筒指示越向下
 - 0.8.1 新增：向心力速度切线、小灯泡分压电路左侧补线、可拖动真实游标卡尺/螺旋测微器测量
 - 0.8.0 新增：胡克定律与等效替代法原理更新；电阻率实验加入游标卡尺、螺旋测微器及使用方法；向心力实验按手摇演示器重建为可拖动 3D 风格装置
@@ -43,14 +44,14 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 ### 方式一：独立桌面程序（推荐）
 
-双击 **`dist/PrismLab-0.8.2.exe`**：
+双击 **`dist/PrismLab-0.8.3.exe`**：
 
 1. 启动独立 WinForms 窗口，内部使用 WebView2 渲染，不打开 Chrome / Edge 地址栏；
 2. 程序内置全部 HTML / CSS / JavaScript / 字体 / 图片 / PPT 资源，不需要联网安装；
 3. 关闭窗口即退出程序；系统托盘仍提供“打开实验室 / 复制访问地址 / 退出”；
 4. 本机需要 Microsoft Edge WebView2 Runtime（Windows 11 通常已自带）。
 
-> 0.8.2 的 EXE 使用自签名代码签名证书。首次运行可在
+> 0.8.3 的 EXE 使用自签名代码签名证书。首次运行可在
 > `packaging/certs/PrismLab-CodeSigning.cer` 查看并安装公钥证书到“受信任的发布者”，
 > 以消除“未知发布者”提示。它不是公共 CA 证书，其他电脑仍需手动信任。
 
@@ -60,7 +61,7 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 1. 在 `127.0.0.1:4178` 启动轻量静态服务器；
 2. 用 Chrome / Edge 的 **应用窗口模式** 打开页面，便于热更新调试；
-3. 这是开发入口，不是最终桌面程序；正式分发请使用 `dist/PrismLab-0.8.2.exe`。
+3. 这是开发入口，不是最终桌面程序；正式分发请使用 `dist/PrismLab-0.8.3.exe`。
 
 ### 方式三：VS Code
 
@@ -89,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 
 ## 功能总览
 
-- **22 个高中物理实验**：力学 10 个、电磁学 8 个、光学 2 个、热学与分子 2 个。
+- **21 个高中物理实验**：力学 9 个、电磁学 8 个、光学 2 个、热学与分子 2 个。
 - **多实验方案**：匀变速、平行四边形、平抛、向心力、机械能、动量、单摆提供“方案一 / 方案二”切换 dock，切换带滑动背景与内容淡入动画。
 - **实验内容对齐**：按《实验总结》补齐实验原理、步骤、数据处理与注意事项；新增“探究等温条件下气体压强与体积的关系”。
 - **实时模拟**：Canvas 60fps 动画，可播放、暂停、重置、全屏、截图。
@@ -126,7 +127,7 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 - **PPT / WPS 联动**：拖动实验卡片到 PowerPoint 或 WPS 幻灯片生成实验链接；放映时点击链接即可打开对应实验；实验页也提供「PPT 链接」复制按钮。
 - **品牌更新**：更名为“中山市中山纪念中学物理实验室”，使用学校校徽作为应用图标。
 
-## 22 个实验
+## 21 个实验
 
 | # | 实验 | 领域 | 核心图像 / 交互 |
 |---|------|------|-----------------|
@@ -135,7 +136,6 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 | 03 | 验证力的平行四边形定则 | 力学 | 矢量合成 / 钩码同心圆、合力随夹角变化 |
 | 04 | 探究加速度与合外力、质量的关系 | 力学 | a–F、a–1/m 控制变量 |
 | 05 | 探究平抛运动的规律 | 力学 | 频闪轨迹 / 分运动、运动分解 |
-| 06 | 探究向心力大小的影响因素 | 力学 | F–r、F–ω² 图像 |
 | 07 | 探究功与速度变化的关系 | 力学 | W–v² 图像、动能定理 |
 | 08 | 验证机械能守恒定律 | 力学 | 单个物体 / 系统、动能 / 势能 / 总能量曲线 |
 | 09 | 验证动量守恒定律 | 力学 | 气垫导轨 / 斜槽小球、碰撞前后 p–t 曲线 |
@@ -162,7 +162,6 @@ powershell -ExecutionPolicy Bypass -File packaging\build-exe.ps1
 | 01 匀变速 | 打点计时器 | 光电门 |
 | 03 力的合成 | 弹簧测力计 | 钩码 |
 | 05 平抛 | 频闪照相 | 分运动研究 |
-| 06 向心力 | 向心力演示仪 | 光电门 |
 | 08 机械能 | 单个物体 | 系统 |
 | 09 动量 | 气垫导轨 | 斜槽小球 |
 | 10 单摆 | 计算法 | 图像法 |
@@ -318,7 +317,7 @@ prism-physics-lab/
 │  ├─ css/
 │  │  └─ styles.css              # Apple 风格设计系统、响应式布局
 │  └─ js/
-│     ├─ data.js                 # 22 个实验元数据、方案、步骤、控件
+│     ├─ data.js                 # 21 个实验元数据、方案、步骤、控件
 │     ├─ app.js                  # 路由、仪表盘、实验运行时
 │     ├─ workshop.js             # 创意工坊 + 模块搭建
 │     ├─ plugin-api.js           # 开放实验接口
@@ -378,11 +377,12 @@ prism-physics-lab/
 
 ## Overview
 
-The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive physics lab for high-school students. It turns **22 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
+The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive physics lab for high-school students. It turns **21 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
 
-The experiment engine is **HTML + CSS + JavaScript** running inside an embedded WebView2 desktop shell. The 0.8.2 EXE is a single WinForms application and does not launch Chrome or Edge externally. It has no backend and no runtime CDN dependency.
+The experiment engine is **HTML + CSS + JavaScript** running inside an embedded WebView2 desktop shell. The 0.8.3 EXE is a single WinForms application and does not launch Chrome or Edge externally. It has no backend and no runtime CDN dependency.
 
 - Product requirements: [PRD.md](PRD.md) (Chinese)
+- New in 0.8.3: removed the centripetal-force experiment from the library, search and progress; old links show “受技术受限，本实验无法做到”.
 - New in 0.8.2: rebuilt the centripetal demonstrator with left/right rotating shafts, two force sleeves, one ball per shaft, and a belt-driven hand crank; the sleeve indicator moves down as speed rises.
 - New in 0.8.1: corrected the centripetal apparatus motion/velocity tangent, closed the bulb divider circuit's left side, and added draggable realistic caliper/micrometer measurement.
 - New in 0.8.0: updated Hooke-law/equivalent-substitution principles, caliper and micrometer measurement in the resistivity lab, and a hand-crank centripetal demonstrator with draggable balls.
@@ -399,14 +399,14 @@ The experiment engine is **HTML + CSS + JavaScript** running inside an embedded 
 
 ### 1. Standalone desktop app (recommended)
 
-Double-click **`dist/PrismLab-0.8.2.exe`**:
+Double-click **`dist/PrismLab-0.8.3.exe`**:
 
 1. it opens a native WinForms window with WebView2 inside, with no Chrome / Edge address bar;
 2. all HTML / CSS / JavaScript / fonts / images / PPT resources are embedded;
 3. closing the window exits the app; the tray menu can reopen it;
 4. Microsoft Edge WebView2 Runtime is required (normally preinstalled on Windows 11).
 
-The 0.8.2 EXE is signed with a self-signed school certificate. The public certificate is at
+The 0.8.3 EXE is signed with a self-signed school certificate. The public certificate is at
 `packaging/certs/PrismLab-CodeSigning.cer`; install it under “Trusted Publishers” to suppress
 the unknown-publisher prompt. It is not a public CA certificate.
 

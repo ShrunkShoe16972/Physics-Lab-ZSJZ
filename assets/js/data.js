@@ -156,6 +156,7 @@
     },
     {
       n: 6, id: 'centripetal', title: '探究向心力大小的影响因素',
+      unavailable: true,
       short: '转动手摇向心力演示器，观察小球做圆周运动，比较质量、半径和角速度对向心力的影响。',
       category: 'mechanics', accent: '#0a84ff', icon: 'orbit',
       difficulty: '进阶', time: '10 分钟', tags: ['圆周运动', '向心力'],
@@ -475,7 +476,7 @@
     }
   ];
 
-  /* 22 个实验的册次归属；仅用于“按教材”浏览筛选。 */
+  /* 21 个实验的册次归属；仅用于“按教材”浏览筛选。 */
   const bookByExp = {
     'accelerated-motion': 'b1',
     'hooke-law': 'b1',
@@ -697,18 +698,21 @@
   });
 
   function get(id) { return experiments.find(function (e) { return e.id === id; }); }
+  const activeExperiments = experiments.filter(function (e) { return !e.unavailable; });
+  function getActive(id) { return activeExperiments.find(function (e) { return e.id === id; }); }
   function categoryOf(exp) { return categories[exp.category]; }
-  function byCategory(cat) { return experiments.filter(function (e) { return e.category === cat; }); }
-  function byBook(book) { return experiments.filter(function (e) { return e.book === book; }); }
+  function byCategory(cat) { return activeExperiments.filter(function (e) { return e.category === cat; }); }
+  function byBook(book) { return activeExperiments.filter(function (e) { return e.book === book; }); }
   function bookOf(exp) { return books[exp && exp.book] || books.b1; }
 
   window.OL = window.OL || {};
   window.OL.categories = categories;
   window.OL.books = books;
-  window.OL.experiments = experiments;
+  window.OL.experiments = activeExperiments;
   window.OL.icons = paths;
   window.OL.icon = icon;
   window.OL.getExperiment = get;
+  window.OL.getActiveExperiment = getActive;
   window.OL.categoryOf = categoryOf;
   window.OL.byCategory = byCategory;
   window.OL.byBook = byBook;
