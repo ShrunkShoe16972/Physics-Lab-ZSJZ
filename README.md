@@ -2,11 +2,11 @@
 
 [中文](#zh) · [English](#en)
 
-> **v0.8.1** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
+> **v0.8.2** · 22 个高中物理实验 · 垂直同步滚动 · Wallpaper Engine 动态背景 · 启动优化
 >
 > 22 high-school physics experiments · rAF scroll sync · Wallpaper Engine live background · faster startup
 
-[![Version](https://img.shields.io/badge/version-0.8.1-0a84ff)](#)
+[![Version](https://img.shields.io/badge/version-0.8.2-0a84ff)](#)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-30d158)](#)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-30d158)](LICENSE)
 [![No CDN](https://img.shields.io/badge/runtime-offline%20%2F%20no%20CDN-bf5af2)](#)
@@ -27,7 +27,8 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 项目完全由 **HTML + CSS + JavaScript** 编写，不依赖后端、不需要安装 Node.js 或编译工具，双击即可运行。无需动态链接库，也不依赖外部 CDN。
 
 - 产品需求文档：[PRD.md](PRD.md)
-- 0.8.1 新增：向心力装置操作与速度切线修正、小灯泡分压电路左侧补线、可拖动真实游标卡尺/螺旋测微器测量
+- 0.8.2 新增：向心力演示器改为左右双旋转轴、双测力套筒、双侧单球，握把经条带驱动双轴，转速越高套筒指示越向下
+- 0.8.1 新增：向心力速度切线、小灯泡分压电路左侧补线、可拖动真实游标卡尺/螺旋测微器测量
 - 0.8.0 新增：胡克定律与等效替代法原理更新；电阻率实验加入游标卡尺、螺旋测微器及使用方法；向心力实验按手摇演示器重建为可拖动 3D 风格装置
 - 0.7.3 新增：放大实验时把舞台挂载到 body，隐藏侧边栏/顶部栏，实测舞台完整覆盖 1920×1080 屏幕
 - 0.7.2 新增：原生窗口全屏、欧姆调零短接按钮与旋钮交互、搜索下拉锚定搜索框、数据与图像移到实验右侧
@@ -42,14 +43,14 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 ### 方式一：独立桌面程序（推荐）
 
-双击 **`dist/PrismLab-0.8.1.exe`**：
+双击 **`dist/PrismLab-0.8.2.exe`**：
 
 1. 启动独立 WinForms 窗口，内部使用 WebView2 渲染，不打开 Chrome / Edge 地址栏；
 2. 程序内置全部 HTML / CSS / JavaScript / 字体 / 图片 / PPT 资源，不需要联网安装；
 3. 关闭窗口即退出程序；系统托盘仍提供“打开实验室 / 复制访问地址 / 退出”；
 4. 本机需要 Microsoft Edge WebView2 Runtime（Windows 11 通常已自带）。
 
-> 0.8.1 的 EXE 使用自签名代码签名证书。首次运行可在
+> 0.8.2 的 EXE 使用自签名代码签名证书。首次运行可在
 > `packaging/certs/PrismLab-CodeSigning.cer` 查看并安装公钥证书到“受信任的发布者”，
 > 以消除“未知发布者”提示。它不是公共 CA 证书，其他电脑仍需手动信任。
 
@@ -59,7 +60,7 @@ Prism（中山市中山纪念中学物理实验室）是一个面向高中物理
 
 1. 在 `127.0.0.1:4178` 启动轻量静态服务器；
 2. 用 Chrome / Edge 的 **应用窗口模式** 打开页面，便于热更新调试；
-3. 这是开发入口，不是最终桌面程序；正式分发请使用 `dist/PrismLab-0.8.1.exe`。
+3. 这是开发入口，不是最终桌面程序；正式分发请使用 `dist/PrismLab-0.8.2.exe`。
 
 ### 方式三：VS Code
 
@@ -379,9 +380,10 @@ prism-physics-lab/
 
 The Sun Yat-sen Memorial Secondary School Physics Lab (Prism) is an interactive physics lab for high-school students. It turns **22 core high-school physics experiments** into draggable, data-collecting, graph-generating simulators, presented through an Apple-inspired interface, a dark experiment stage, live readouts, and motion.
 
-The experiment engine is **HTML + CSS + JavaScript** running inside an embedded WebView2 desktop shell. The 0.8.1 EXE is a single WinForms application and does not launch Chrome or Edge externally. It has no backend and no runtime CDN dependency.
+The experiment engine is **HTML + CSS + JavaScript** running inside an embedded WebView2 desktop shell. The 0.8.2 EXE is a single WinForms application and does not launch Chrome or Edge externally. It has no backend and no runtime CDN dependency.
 
 - Product requirements: [PRD.md](PRD.md) (Chinese)
+- New in 0.8.2: rebuilt the centripetal demonstrator with left/right rotating shafts, two force sleeves, one ball per shaft, and a belt-driven hand crank; the sleeve indicator moves down as speed rises.
 - New in 0.8.1: corrected the centripetal apparatus motion/velocity tangent, closed the bulb divider circuit's left side, and added draggable realistic caliper/micrometer measurement.
 - New in 0.8.0: updated Hooke-law/equivalent-substitution principles, caliper and micrometer measurement in the resistivity lab, and a hand-crank centripetal demonstrator with draggable balls.
 - New in 0.7.3: the stage is moved to `body` while zoomed, the sidebar/topbar are hidden, and the stage covers the full 1920×1080 display.
@@ -397,14 +399,14 @@ The experiment engine is **HTML + CSS + JavaScript** running inside an embedded 
 
 ### 1. Standalone desktop app (recommended)
 
-Double-click **`dist/PrismLab-0.8.1.exe`**:
+Double-click **`dist/PrismLab-0.8.2.exe`**:
 
 1. it opens a native WinForms window with WebView2 inside, with no Chrome / Edge address bar;
 2. all HTML / CSS / JavaScript / fonts / images / PPT resources are embedded;
 3. closing the window exits the app; the tray menu can reopen it;
 4. Microsoft Edge WebView2 Runtime is required (normally preinstalled on Windows 11).
 
-The 0.8.1 EXE is signed with a self-signed school certificate. The public certificate is at
+The 0.8.2 EXE is signed with a self-signed school certificate. The public certificate is at
 `packaging/certs/PrismLab-CodeSigning.cer`; install it under “Trusted Publishers” to suppress
 the unknown-publisher prompt. It is not a public CA certificate.
 

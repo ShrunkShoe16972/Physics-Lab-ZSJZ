@@ -1332,18 +1332,19 @@
       'THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.'
     ].join('\n');
     viewEl.innerHTML = '<div class="view-inner about-page">' +
-      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.8.1</span></section>' +
+      '<section class="about-hero"><div class="about-crest"><img src="assets/img/school-badge.png" alt="中山市中山纪念中学校徽"></div><div><span class="eyebrow">ABOUT · 关于</span><h1>中山市中山纪念中学<br>物理实验室</h1><p>把每一个公式，变成看得见的实验。22 个高中物理实验、多方案切换、连续运动与模块化工坊。</p></div><span class="about-version">v0.8.2</span></section>' +
       '<div class="about-grid">' +
       '<section class="card about-card"><div class="about-card-head"><h2>版本与发布</h2><span class="pill green">稳定版</span></div>' +
-      '<div class="about-version-row"><strong>0.8.1</strong><span>2026-11-22</span></div>' +
-      '<p>修正向心力装置与速度方向、补齐小灯泡分压电路左侧连接、重做可拖动游标卡尺与螺旋测微器测量界面。</p>' +
+      '<div class="about-version-row"><strong>0.8.2</strong><span>2026-11-28</span></div>' +
+      '<p>向心力演示器重做为左右双旋转轴、双测力套筒、单球双侧布局，握把通过条带驱动两轴，套筒指示随转速增大而下移。</p>' +
       '<div class="about-links"><a class="btn ghost small" href="' + releaseUrl + '" target="_blank" rel="noopener">GitHub Releases ↗</a><a class="btn ghost small" href="https://github.com/ShrunkShoe16972/Physics-Lab-ZSJZ" target="_blank" rel="noopener">GitHub 仓库 ↗</a></div></section>' +
       '<section class="card about-card"><div class="about-card-head"><h2>问题递交</h2><span class="pill">Issues</span></div>' +
       '<p>发现实验步骤、图像、交互或兼容性问题，欢迎在 GitHub Issues 提交。请附上实验编号、系统与浏览器版本，以及可复现步骤。</p>' +
       '<ol class="about-steps"><li>打开 Issues 页面</li><li>点击 “New issue”</li><li>选择或填写问题模板</li><li>附上截图与复现步骤</li></ol>' +
       '<a class="btn primary-hero small" href="' + issueUrl + '" target="_blank" rel="noopener">打开 GitHub Issues ↗</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>最近更新</h2><span class="pill">Changelog</span></div>' +
-      '<div class="about-changelog"><div><b>0.8.1</b><span>2026-11-22</span><p>向心力装置按 BV1Rr421x7ge 操作逻辑修正，速度箭头改为真实轨迹切线；小灯泡分压电路补上左侧回路；游标卡尺与螺旋测微器改为大幅真实仪器，支持拖动游标/测微套筒测量并同步 L、d。</p></div>' +
+      '<div class="about-changelog"><div><b>0.8.2</b><span>2026-11-28</span><p>向心力演示器改为左右各一根旋转轴、各一个测力套筒、各放一个球；握把经条带同时驱动两轴；转速越高，套筒红色指示越向下；速度箭头保持轨迹切线。</p></div>' +
+      '<div><b>0.8.1</b><span>2026-11-22</span><p>向心力装置按 BV1Rr421x7ge 操作逻辑修正，速度箭头改为真实轨迹切线；小灯泡分压电路补上左侧回路；游标卡尺与螺旋测微器改为大幅真实仪器，支持拖动游标/测微套筒测量并同步 L、d。</p></div>' +
       '<div><b>0.8.0</b><span>2026-11-22</span><p>胡克定律改为二力平衡表述；平行四边形实验原理改为等效替代法并移除公式；电阻率实验加入游标卡尺、螺旋测微器及使用方法弹窗；向心力实验按手摇演示器重绘为可交互 3D 风格装置。</p></div>' +
       '<div><b>0.7.3</b><span>2026-11-21</span><p>实验放大时将舞台从 .lab-page 移到 body，彻底摆脱侧栏/内容容器的定位限制；全屏时隐藏侧边栏、顶部栏和滚动条，实测舞台 0,0 到 1920×1080 完整铺满。</p></div>' +
       '<div><b>0.7.2</b><span>2026-11-21</span><p>实验放大改为原生窗口全屏并覆盖整块电脑屏幕；多用电表增加“短接表笔”与可拖动欧姆调零旋钮；搜索下拉固定在搜索框正下方；删除右侧实时读数，数据与图像框移至实验右侧。</p></div>' +
@@ -1355,12 +1356,12 @@
       '<p class="about-license-lead">本项目采用 BSD 3-Clause License。再分发时需保留版权声明、许可证条款和免责声明。</p><pre class="about-license">' + U.esc(licenseText) + '</pre></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>PowerPoint / WPS 联动</h2><span class="pill purple">PPT</span></div>' +
       '<p>在实验库中拖动任意实验卡片到 PowerPoint 或 WPS 幻灯片，会写入一个指向当前实验的链接。放映时点击该链接，即可在浏览器中打开对应实验。</p>' +
-      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.8.1-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
+      '<p class="about-muted">链接会使用当前运行地址（本机开发为 127.0.0.1:4178，便携版为 127.0.0.1:4380）。分享到另一台电脑时，请确保对方也能访问同一地址，或使用「PPT 链接」按钮复制链接后手动设置超链接。</p><a class="btn ghost small" href="assets/ppt/Prism-Lab-0.8.2-Links.pptx" download>下载 23 页 PPT 链接包 ↓</a></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>Wallpaper Engine 动态背景</h2><span class="pill green">WE</span></div>' +
       '<p>在设置中点击「读取动态壁纸」，程序会自动读取 Wallpaper Engine 当前壁纸：视频壁纸直接播放，场景与网页壁纸由独立 WE 窗口实时捕获。窗口移出桌面并设置为工具窗口，不显示任务栏图标，也不会抢占焦点。</p>' +
       '<p class="about-muted">场景捕获为 1280×720、JPEG 82，热启动约 25fps；视频保持原始清晰度。背景支持填充、适应、拉伸、平铺、原尺寸五种显示方式。</p></section>' +
       '<section class="card about-card about-wide"><div class="about-card-head"><h2>代码签名证书</h2><span class="pill green">CODE SIGNING</span></div>' +
-      '<p>0.8.1 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
+      '<p>0.8.2 使用学校自签名代码签名证书 <b>PrismLab Code Signing 0.7</b>，指纹 <code>4C10FB0E9B1C0CF4FAE5188AA9E29734B05BCC59</code>，有效期至 2031-11-21。</p>' +
       '<p class="about-muted">证书公钥位于 <code>packaging/certs/PrismLab-CodeSigning.cer</code>。它不是公共 CA 证书，Windows 默认仍可能提示“未知发布者”；可将公钥安装到“受信任的发布者”后消除提示。</p></section>' +
       '</div></div>';
   }
